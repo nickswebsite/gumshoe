@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block scripts %}
+    {{ block.super }}
+    <script src="{% static 'js/URI.js' %}"></script>
+    <script src="{% static 'js/angular.js' %}"></script>
+    <script src="{% static 'js/ui-bootstrap-custom-0.10.0.js' %}"></script>
+    <script src="{% static 'js/gumshoe.js' %}"></script>
+    <script src="{% static 'js/gumshoe.ng.js' %}"></script>
+{% endblock %}
+
+{% block bodyattrs %}ngx-app="djangobugs" {% endblock %}
+{% block bodyhead %}
+        {{ block.super }}
+        {% verbatim %}
+        <script type="text/ng-template" id="template/pagination/pagination.html">
+            <ul class="issue-paginator">
+                <li ng-repeat="page in pages" ng-class="{'page-active': page.active, 'page-disabled': page.disabled}"><a ng-click="selectPage(page.number)">{{ page.text }}</a></li>
+            </ul>
+        </script>
+        {% endverbatim %}
+{% endblock %}

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <link rel="stylesheet" href="{% static 'tests/css/jasmine.css' %}" type="text/css"/>
+
+    <script src="{% static 'js/angular.js' %}"></script>
+    <script src="{% static 'js/URI.js' %}"></script>
+
+    <script src="{% static 'tests/js/jasmine.js' %}"></script>
+    <script src="{% static 'tests/js/jasmine-html.js' %}"></script>
+    <script src="{% static 'tests/js/boot.js' %}"></script>
+
+    {% block scripts %}
+    {% for script in scripts %}
+    <script src="{% static script %}"></script>
+    {% endfor %}
+    {% endblock %}
+</head>
+<body>
+</body>
+</html>

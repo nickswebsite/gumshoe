@@ -1,0 +1,53 @@
+{% extends "ng-base.html" %}
+
+{% block content %}
+{% include 'gumshoe/navbar.html' %}
+<div id="issue-list-view" ng-controller="IssueListCtrl">
+    {% verbatim %}
+    <div id="issue-actions">
+        <a id="filter-button" class="primary-button" ng-click="refresh()">Refresh</a>
+        <a id="add-issue-button" class="primary-button" ng-click="addIssue()">Add Issue</a>
+    </div>
+
+    <div id="issue-filter-options">
+        <h2>By Project</h2>
+        <select multiple ng-model="issuesFilter.projectsSelected" ng-options="project as project.name for project in issuesFilter.allProjects"></select>
+
+        <h2>By Status</h2>
+        <select multiple ng-model="issuesFilter.statusesSelected" ng-options="status for status in issuesFilter.allStatuses"></select>
+
+        <h2>By Fix Version</h2>
+        <select multiple ng-model="issuesFilter.fixVersionsSelected" ng-options="version as version.name for version in issuesFilter.getAvailableFixVersions()"></select>
+
+        <h2>By Affects Version</h2>
+        <select multiple ng-model="issuesFilter.affectsVersionsSelected" ng-options="version as version.name for version in issuesFilter.getAvailableAffectsVersions()"></select>
+
+        <h2>By Assignee</h2>
+        <select multiple ng-model="issuesFilter.assigneesSelected" ng-options="user as user.username for user in issuesFilter.allUsers"></select>
+
+        <h2>By Milestone</h2>
+        <select multiple ng-model="issuesFilter.milestonesSelected" ng-options="milestone as milestone.name for milestone in issuesFilter.allMilestones"></select>
+    </div>
+
+    <div id="issue-filter-results">
+        <table class="issue-list">
+            <tr><th ng-click="priorityHeader.toggle()">Priority {{ priorityHeader.directionText }}</th>
+                <th ng-click="issueKeyHeader.toggle()">Summary {{ issueKeyHeader.directionText }}</th>
+                <th ng-click="resolutionHeader.toggle()">Resolution {{ resolutionHeader.directionText }}</th>
+                <th>Assignee</th>
+            </tr>
+            <tr ng-repeat="issue in issues">
+                <td>{{ issue.issueType.shortName }}/{{ issue.priority.shortName }}</td>
+                <td><a href="/issues/{{ issue.issueKey }}" ng-click="saveSettings()">{{ issue.issueKey }} {{ issue.summary }}</a></td>
+                <td>{{ issue.resolution.name }}</td>
+                <td>{{ issue.assignee.username }}</td>
+            </tr>
+        </table>
+        <pagination total-items="totalIssues" items-per-page="pageSize" page="currentPage"></pagination>
+        Total Issues: {{ totalIssues }}
+        Page Size: <select ng-model="pageSize" ng-options="pageSizeOption for pageSizeOption in pageSizeOptions"></select>
+    </div>
+
+    {% endverbatim %}
+</div>
+{% endblock %}
