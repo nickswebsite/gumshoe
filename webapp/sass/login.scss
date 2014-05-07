@@ -1,0 +1,29 @@
+@import 'base';
+
+#login-box {
+  background-color: $header-bg;
+  border: 1px solid black;
+  box-shadow: 2px 2px 4px darken($header-bg, 20%);
+  border-radius: 12px;
+
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: 32px;
+  padding-bottom: 32px;
+
+  margin: auto;
+  margin-top: 200px;
+
+  width: 350px;
+
+  label, input {
+    width: 100%;
+    display: block;
+    margin-bottom: 8px;
+    margin-top: 8px;
+  }
+
+  label {
+    color: $header-fg;
+  }
+}
