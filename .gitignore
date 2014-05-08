@@ -1,20 +1,29 @@
 .gitignore-local
 
+# exclude backup dump of a bugzilla database.
 bugzilla-backup.sql
 
+# exclude automatically generated files.
+MANIFEST
 *.sqlite3
 *.py[ocd]
 *.tar.gz
 *.tgz
 *.zip
 
-env/
-
-project/dependencies/
-
 gumshoe/static/css/
-gumshoe/static/img/
 gumshoe/static/js/
 gumshoe/static/tests/
 
+# exclude binary files.
+gumshoe/static/img/
+
+# exclude build directory.
+dist/
+
+# exclude environment and cache directories.
+env/
 .sass-cache/
+
+project/dependencies/
+
