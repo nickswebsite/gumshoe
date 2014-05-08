@@ -161,6 +161,25 @@ class ResolvedStatus extends Status
 class ClosedStatus extends Status
   constructor: ( oldStatus ) -> super( oldStatus.resolution, "CLOSED", "Closed" )
 
+class Comment
+  constructor: ( id, author, text, created, updated) ->
+    @id = id || -1
+    @created = created || new Date()
+    @updated = updated || new Date()
+    @author = author || null
+    @text = text || ""
+
+  @fromDTO: ( dto ) ->
+    created = if dto.created then new Date( dto.created ) else new Date()
+    updated = if dto.updated then new Date( dto.updated ) else new Date()
+
+    author = userManager.getUserById( dto.author.id )
+    if !author
+      author = User.fromDTO( dto.author )
+      userManager.putUser( User.fromDTO( dto.author ) )
+
+    new Comment( dto.id, author, dto.text, created, updated )
+
 class Issue
   constructor: () ->
     @issueKey = null
@@ -183,6 +202,8 @@ class Issue
     @milestone = null
 
     @status = new OpenStatus()
+
+    @comments = []
 
     @reported = new Date()
     @lastUpdated = new Date()
@@ -213,6 +234,7 @@ class Issue
 
     obj.reported = new Date( dto.reported )
     obj.lastUpdated = new Date( dto.lastUpdated )
+
     obj
 
   resolve: ( resolution ) ->
@@ -366,6 +388,7 @@ class HeaderOrderingFilter
   projectManager: projectManager
   IssueType: IssueType
   Issue: Issue
+  Comment: Comment
   Priority: Priority
   Status: Status
   OpenStatus: OpenStatus

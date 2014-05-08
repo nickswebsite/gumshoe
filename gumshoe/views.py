@@ -2,6 +2,7 @@ import datetime
 import time
 
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http.response import HttpResponseRedirect, HttpResponse, Http404
@@ -9,12 +10,13 @@ from django.shortcuts import render
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, link, action
 from rest_framework.pagination import PaginationSerializer
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from gumshoe.models import Project, IssueType, Issue, Priority, Component, Version, Milestone
+from gumshoe.models import Project, IssueType, Issue, Priority, Component, Version, Milestone, Comment
+
 
 def now():
     return datetime.datetime.utcnow()
@@ -26,7 +28,7 @@ def login(request):
     context_dict = {}
     if request.method == "GET":
         if request.user.is_authenticated():
-            return HttpResponseRedirect("/test/?already_loggedin=true")
+            return HttpResponseRedirect("/")
 
     elif request.method == "POST":
         username = request.POST.get("username")
@@ -35,7 +37,7 @@ def login(request):
         user = auth.authenticate(username=username, password=password)
         if user is not None and user.is_active:
             auth.login(request, user)
-            return HttpResponseRedirect("/test/?success=true")
+            return HttpResponseRedirect("/")
 
         context_dict["error_message"] = "Invalid login credentials"
 
@@ -192,6 +194,19 @@ class MilestoneSerializer(serializers.ModelSerializer):
         model = Milestone
         fields = ("id", "name", "description")
 
+class CommentSerializer(serializers.Serializer):
+    id = serializers.IntegerField(source="pk", required=False)
+    author = UserSerializer(read_only=True)
+    created = UnixtimeField(read_only=True, millis=True)
+    updated = UnixtimeField(read_only=True, millis=True)
+    text = serializers.CharField(required=True)
+
+    def restore_object(self, attrs, instance=None):
+        instance = instance or Comment()
+        instance.text = attrs.get("text")
+        instance.pk = attrs.get("pk")
+        return instance
+
 class IssueSerializer(serializers.Serializer):
     id = serializers.IntegerField(source="pk", required=False)
     url = serializers.HyperlinkedIdentityField(view_name="issue-detail", lookup_field="issue_key")
@@ -217,10 +232,6 @@ class IssueSerializer(serializers.Serializer):
     milestone = MilestoneSerializer(required=False, read_only=True)
 
     def restore_object(self, attrs, instance=None):
-        fields_to_copy = dict(self.fields.items())
-        id = fields_to_copy.pop("id", None)
-        url = fields_to_copy.pop("url", None)
-
         issue = instance or Issue()
         issue.summary = attrs.get("summary") or issue.summary
         issue.description = attrs.get("description") or issue.description
@@ -357,6 +368,35 @@ class IssueViewSet(viewsets.ViewSet):
 
         serializer = self.serializer_class(issue, context={"request": request})
         return Response(serializer.data, status=200)
+
+    @action(methods=["get", "put", "post"])
+    def comments(self, request, issue_key=None):
+        try:
+            issue = Issue.objects.get(issue_key=issue_key)
+        except Issue.DoesNotExist:
+            raise Http404
+
+        if request.method == "GET":
+            serializer = CommentSerializer(issue.comments.all(), many=True)
+            return Response(serializer.data, status=200)
+        elif request.method == "POST":
+            serializer = CommentSerializer(data=request.DATA, context={"request": request})
+            if serializer.is_valid():
+                comment = serializer.object
+                comment.content = issue
+                comment.author = request.user
+                comment.save()
+                return Response(serializer.data, status=200)
+            return Response(serializer.errors, status=400)
+        elif request.method == "PUT":
+            serializer = CommentSerializer(data=request.DATA, context={"request": request})
+            if serializer.is_valid():
+                comment_detached = serializer.object
+                comment = Comment.objects.get(pk=comment_detached.pk)
+                comment.text = comment_detached.text
+                comment.save()
+                return Response(CommentSerializer(comment, context={"request": request}).data, status=200)
+            return Response(serializer.errors, status=400)
 
     def update(self, request, issue_key=None):
         try:

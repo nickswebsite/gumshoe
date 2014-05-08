@@ -90,6 +90,19 @@
         </div>
     </div>
 
+    <div id="comments" ng-show="!addMode">
+        <div ng-repeat="comment in comments">
+            <h2>Posted by {{ comment.author.username }} on {{ comment.created | date:'MMMM dd, yyyy h:mma' }}</h2>
+            <pre>{{ comment.text }}</pre>
+        </div>
+
+        <div id="add-comment-to-issue">
+            <h2>Add Comment</h2>
+            <textarea ng-model="commentText"></textarea>
+            <button ng-click="addComment()">Add</button>
+        </div>
+    </div>
+
     {% endverbatim %}
 
     {% comment %}

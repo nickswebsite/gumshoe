@@ -1,3 +1,5 @@
+@import 'base';
+
 #update-issue-page {
   margin-left: 16px;
   margin-right: 16px;
@@ -78,5 +80,36 @@
   label {
     margin-bottom: 8px;
     display: block;
+  }
+}
+
+#comments {
+  margin-top: 8px;
+  width: 100%;
+  border-left: 1px solid;
+  border-right: 1px solid;
+  padding: 8px;
+  background-color: darken($content-bg, 2.5%);
+
+  > div {
+    border-radius: 8px;
+    border: 1px solid;
+    padding: 8px;
+    margin-bottom: 8px;
+    background-color: lighten($content-bg, 2.5%);
+  }
+
+  h2 {
+    font-weight: bold;
+    text-align: center;
+  }
+
+}
+#add-comment-to-issue {
+  textarea {
+    display: block;
+    width: 98%;
+    min-height: 200px;
+    margin: auto;
   }
 }

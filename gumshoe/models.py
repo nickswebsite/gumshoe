@@ -4,8 +4,30 @@ from django.utils.timezone import utc
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import m2m_changed
+from django.contrib.contenttypes.generic import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 
-# Create your models here.
+class Comment(models.Model):
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.PositiveIntegerField()
+    content = GenericForeignKey('content_type', 'object_id')
+
+    author = models.ForeignKey(User)
+    created = models.DateTimeField(null=False)
+    updated = models.DateTimeField(null=False)
+    text = models.TextField()
+
+    def __str__(self):
+        return self.text
+
+    def save(self, *args, **kwds):
+        if kwds.pop("update_timestamps", True):
+            if self.pk is None:
+                self.created = datetime.datetime.utcnow().replace(tzinfo=utc)
+            self.updated = datetime.datetime.utcnow().replace(tzinfo=utc)
+        super(Comment, self).save(*args, **kwds)
+
+
 class Project(models.Model):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=False)
@@ -104,6 +126,8 @@ class Issue(models.Model):
 
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default='OPEN')
     resolution = models.CharField(max_length=32, choices=RESOLUTION_CHOICES, default='UNRESOLVED')
+
+    comments = GenericRelation(Comment)
 
     def __str__(self):
         return "{0} - {1}".format(self.issue_key, self.summary)

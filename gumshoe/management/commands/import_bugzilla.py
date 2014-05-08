@@ -1,15 +1,13 @@
 import re
 import os
-import textwrap
 
 from django.core.management.base import BaseCommand, CommandError
 from optparse import make_option
 
 from django.db import connections
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
-from gumshoe.models import Project, Version, Component, Priority, IssueType, Issue
+from gumshoe.models import Project, Version, Component, Priority, IssueType, Issue, Comment
 
 settings_module = os.environ.get("DJANGO_SETTINGS_MODULE")
 if settings_module != "test_project.test_import_settings":
@@ -340,14 +338,17 @@ class Command(BaseCommand):
                 text = row["description"]
 
                 if text:
-                    description = textwrap.dedent("""
-                    Author: {0}  --- {1}
-                    {2}
-
-                    """).lstrip().format(author.username, timestamp, text)
-
-                    bugzilla_map.issue.description += description
-                    bugzilla_map.issue.save(update_timestamps=False)
+                    if timestamp == bugzilla_map.issue.reported:
+                        bugzilla_map.issue.description += text
+                        bugzilla_map.issue.save(update_timestamps=False)
+                    else:
+                        comment = Comment()
+                        comment.content = bugzilla_map.issue
+                        comment.text = text
+                        comment.author = author
+                        comment.created = timestamp
+                        comment.updated = timestamp
+                        comment.save(update_timestamps=False)
 
                 log_dot()
 

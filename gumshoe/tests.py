@@ -3,11 +3,13 @@ import string
 import random
 
 from django.contrib.auth.models import User
+from django.db.models import Q
 from django.test import TestCase as TestCaseBase
 
 
 # Create your tests here.
-from gumshoe.models import Project, Priority, Component, Version, Issue, IssueType, Milestone
+from gumshoe.models import Project, Priority, Component, Version, Issue, IssueType, Milestone, Comment
+
 
 def random_string(max_length=255):
     return "".join([random.choice(string.ascii_letters + string.digits + "_-!@#$%^&*()+=\t ,.<>/?[]{}\\|'\";:`~") for _ in xrange(max_length)])
@@ -75,6 +77,15 @@ class IssueTestCaseBase(object):
         issue.fix_versions = kwds.get("fix_versions", [self.version_one])
 
         return issue
+
+    def generate_comment(self, issue, **kwds):
+        comment = Comment()
+        comment.content = issue
+        comment.text = kwds.get("text", random_string())
+        comment.author = kwds.get("author", self.user)
+        comment.save()
+
+        return comment
 
 class IssuesApiTests (IssueTestCaseBase, TestCaseBase):
     fixtures = ["initial_data.json"]
@@ -193,6 +204,65 @@ class IssuesApiTests (IssueTestCaseBase, TestCaseBase):
         self.assertSetEqual(set(pl["affectsVersions"]), set(res["affectsVersions"]))
         self.assertSetEqual(set(pl["fixVersions"]), {v.pk for v in issue.fix_versions.all()})
         self.assertSetEqual(set(pl["fixVersions"]), set(res["fixVersions"]))
+
+class CommentsApiTests (IssueTestCaseBase, TestCaseBase):
+    fixtures = ["initial_data.json"]
+    EXISTING_ISSUE_ENDPOINT = "/rest/issues/{0}/"
+
+    def setUp(self):
+        self.setUpProject()
+
+    def test_get_comments(self):
+        issue = self.generate_issue()
+        comment1 = self.generate_comment(issue, author=self.user)
+        comment2 = self.generate_comment(issue, author=self.another_user)
+
+        res = self.client.get(self.EXISTING_ISSUE_ENDPOINT.format(issue.issue_key)+"comments/")
+        self.assertEqual(200, res.status_code, res.content)
+        res = json.loads(res.content)
+
+        self.assertEqual(2, len(res))
+        self.assertEqual(res[0]["text"], comment1.text)
+        self.assertEqual(res[0]["author"]["id"], self.user.pk)
+
+        self.assertEqual(res[1]["text"], comment2.text)
+        self.assertEqual(res[1]["author"]["id"], self.another_user.pk)
+
+    def test_create_comments(self):
+        issue = self.generate_issue()
+        comment1 = self.generate_comment(issue, author=self.user)
+
+        pl = {
+            "text": random_string(),
+        }
+        res = self.client.post(self.EXISTING_ISSUE_ENDPOINT.format(issue.issue_key)+"comments/", json.dumps(pl), content_type="application/json")
+        self.assertEqual(200, res.status_code, res.content)
+        res = json.loads(res.content)
+
+        issue = Issue.objects.get(pk=issue.pk)
+        self.assertEqual(2, issue.comments.count())
+        second_comment = issue.comments.get(~Q(pk=comment1.pk))
+        self.assertEqual(second_comment.text, pl["text"])
+        self.assertEqual(second_comment.author.pk, self.user.pk)
+        self.assertIsNotNone(second_comment.created)
+        self.assertIsNotNone(second_comment.updated)
+
+    def test_save_comments(self):
+        issue = self.generate_issue()
+        comment1 = self.generate_comment(issue)
+        comment2 = self.generate_comment(issue)
+
+        pl = {
+            "id": comment1.pk,
+            "text": random_string(),
+        }
+
+        res = self.client.put(self.EXISTING_ISSUE_ENDPOINT.format(issue.issue_key)+"comments/", json.dumps(pl), content_type="application/json")
+        self.assertEqual(200, res.status_code, res.content)
+        res = json.loads(res.content)
+
+        comment = Comment.objects.get(pk=comment1.pk)
+        self.assertEqual(pl["text"], comment.text)
 
 class IssueFilterTests(IssueTestCaseBase, TestCaseBase):
     fixtures = ["initial_data.json"]

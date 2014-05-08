@@ -2,6 +2,7 @@
 IssueFilter = Gumshoe.IssueFilter
 HeaderOrderingFilter = Gumshoe.HeaderOrderingFilter
 NullProject = Gumshoe.NullProject
+Comment = Gumshoe.Comment
 Issue = Gumshoe.Issue
 Project = Gumshoe.Project
 projectManager = Gumshoe.projectManager
@@ -172,10 +173,19 @@ class UpdateIssueCtrl
     @scope.users = @usersService.getAll()
     @scope.milestones = @milestonesService.getAll()
 
+    @scope.comments = null
+    @scope.commentText = ""
+
+    @issueEndpoint = "#{API.ISSUES_LIST}"
+    @issueCommentsEndpoint = null
+
     if !@scope.addMode
       parts = url.path.split("/")
       issueKey = parts.pop()
-      @http.get( "#{API.ISSUES_LIST}#{issueKey}/" ).success ( ( data, status, headers, config ) =>
+      @issueEndpoint = "#{API.ISSUES_LIST}#{issueKey}/"
+      @issueCommentsEndpoint = "#{@issueEndpoint}comments/"
+
+      @http.get( @issueEndpoint ).success ( ( data, status, headers, config ) =>
         @scope.issue = Issue.fromDTO( data )
         @scope.project = @scope.issue.project
         @scope.resolution = @scope.issue.status.resolution
@@ -183,6 +193,15 @@ class UpdateIssueCtrl
         @scope.issueTypes = @scope.project.issueTypes
         @scope.priorities = @scope.project.priorities
         @scope.resolutions = @scope.project.resolutions
+
+        if @scope.comments
+          @scope.issue.comments = @scope.comments
+      )
+
+      @http.get( @issueCommentsEndpoint ).success( ( data, status, headers, config ) =>
+        @scope.comments = ( Comment.fromDTO( c ) for c in data )
+        if @scope.issue
+          @scope.issue.comments = @scope.comments
       )
 
     else
@@ -204,6 +223,14 @@ class UpdateIssueCtrl
     @scope.resolve = () => @resolve()
     @scope.reopen = () => @reopen()
     @scope.close = () => @close()
+    @scope.addComment = () => @addComment( @scope.commentText )
+
+  addComment: ( text ) ->
+    pl =
+      text: text
+    @http.post( @issueCommentsEndpoint, pl ).success ( ( data, status, headers, config ) =>
+      @scope.comments.push Comment.fromDTO( data )
+    )
 
   constructIssuePayload: ( issue ) ->
     id: issue.id
