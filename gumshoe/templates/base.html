@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    {% block styles %}
+    <link href="{% static 'css/screen.css' %}" media="screen, projection" rel="stylesheet" type="text/css" />
+    <link href="{% static 'css/print.css' %}" media="print" rel="stylesheet" type="text/css" />
+    <!--[if IE]>
+      <link href="{% static 'css/ie.css' %}" media="screen, projection" rel="stylesheet" type="text/css" />
+    <![endif]-->
+    <link href="{% static 'css/login.css' %}" media="screen, projection" rel="stylesheet" type="text/css"/>
+    <link href="{% static 'css/update-issue.css' %}" media="screen, projection" rel="stylesheet" type="text/css"/>
+    <link href="{% static 'css/issue-list.css' %}" media="screen, projection" rel="stylesheet" type="text/css"/>
+    <link href="{% static 'css/navbar.css' %}" media="screen, projection" rel="stylesheet" type="text/css"/>
+    {% endblock %}
+
+    {% block scripts %}
+    {% endblock %}
+</head>
+
+<body {% block bodyattrs %}{% endblock %}>
+    {% block bodyhead %}{% endblock %}
+    {% block content %}
+    <h1>Hello World!!!</h1>
+
+    <a href="/forms/add_issue">Add Issue</a>
+
+    <p>X Y Z</p>
+
+    <ul>
+        <li>List item 1</li>
+        <li>List item 2</li>
+        <li>List item 3</li>
+    </ul>
+
+    <table>
+        <tr><th>Heading</th><th>Heading</th></tr>
+        <tr><td>Value</td><td><a href="#">Value</a></td></tr>
+        <tr><td>Value</td><td>Value</td></tr>
+        <tr><td>Value</td><td>Value</td></tr>
+        <tr><td>Value</td><td>Value</td></tr>
+    </table>
+
+    <a class="primary-button" href="#">Primary Button</a>
+    <br />
+    <a class="secondary-button" href="#">Secondary Button</a>
+
+    <div>
+        <label>Label</label>
+        <input type="text" value="Text Box"/>
+    </div>
+
+    <div>
+        <label>Text area label</label>
+        <textarea>Text in textarea</textarea>
+    </div>
+
+    <div class="section">Section div</div>
+
+
+    {% endblock %}
+</body>
+</html>

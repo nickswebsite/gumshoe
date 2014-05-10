@@ -1,0 +1,68 @@
+[
+    {
+        "pk": 1,
+        "model": "gumshoe.issuetype",
+        "fields": {
+            "icon": "BUG.gif",
+            "name": "Bug",
+            "short_name": "BUG",
+            "description": "Defects in program"
+        }
+    },
+    {
+        "pk": 2,
+        "model": "gumshoe.issuetype",
+        "fields": {
+            "icon": "FRQ.gif",
+            "name": "Feature Request",
+            "short_name": "FRQ",
+            "description": "Requests for new features"
+        }
+    },
+    {
+        "pk": 3,
+        "model": "gumshoe.issuetype",
+        "fields": {
+            "icon": "TASK.gif",
+            "name": "Task",
+            "short_name": "TASK",
+            "description": "Tasks for developers."
+        }
+    },
+    {
+        "pk": 1,
+        "model": "gumshoe.priority",
+        "fields": {
+            "short_name": "NP",
+            "name": "Unprioritized",
+            "weight": 200
+        }
+    },
+    {
+        "pk": 2,
+        "model": "gumshoe.priority",
+        "fields": {
+            "short_name": "BLK",
+            "name": "Blocker",
+            "weight": 1000
+        }
+    },
+    {
+        "pk": 3,
+        "model": "gumshoe.priority",
+        "fields": {
+            "short_name": "MAJ",
+            "name": "Major",
+            "weight": 700
+        }
+    },
+    {
+        "pk": 4,
+        "model": "gumshoe.priority",
+        "fields": {
+            "short_name": "MIN",
+            "name": "Minor",
+            "weight": 400
+        }
+    }
+]

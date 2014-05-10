@@ -1,0 +1,22 @@
+$content-fg: #007e00;
+$content-bg: #f8fff8;
+$content-font-size: 16px;
+$content-font-family: sans-serif;
+
+$content-error-fg: #ff0000;
+
+$header-fg: #ffffff;
+$header-bg: #007e00;
+
+$table-alt-row-bg: #b4ffb6;
+
+$default-border-color: $header-bg;
+
+$primary-button-bg: $header-bg;
+$primary-button-fg: $header-fg;
+$primary-button-border-color: darken($primary-button-bg, 20%);
+
+$secondary-button-bg: darken($content-bg, 5%);
+$secondary-button-fg: $content-fg;
+$secondary-button-border-color: darken($secondary-button-bg, 20%);
+

@@ -1,0 +1,122 @@
+{% extends "ng-base.html" %}
+
+{% block content %}
+{% include 'gumshoe/navbar.html' %}
+<div id="update-issue-page" ng-controller="UpdateIssueCtrl">
+    {% verbatim %}
+    <div id="issue-basic-information">
+        <div>
+            <label for="summary">Summary</label>
+            <input type="text" id="summary" ng-model="issue.summary"/>
+        </div>
+
+        <div>
+            <label for="issue-type">Issue Type</label>
+            <select id="issue-type" ng-model="issue.issueType" ng-options="issueType as issueType.name for issueType in issueTypes"></select>
+        </div>
+
+        <div>
+            <label for="priority">Priority</label>
+            <select id="priority" ng-model="issue.priority" ng-options="priority as priority.name for priority in project.priorities"></select>
+        </div>
+
+        <div>
+            <label for="description">Description</label>
+            <textarea id="description" ng-model="issue.description"></textarea>
+        </div>
+
+        <div>
+            <label for="steps-to-reproduce">Steps to Reproduce</label>
+            <textarea id="steps-to-reproduce" ng-model="issue.stepsToReproduce"></textarea>
+        </div>
+    </div>
+
+    <div id="issue-controls">
+        <div class="issue-key">
+            <span ng-show="!!issue.issueKey">{{ issue.issueKey }}</span>
+            <span ng-show="!issue.issueKey">New Issue</span>
+        </div>
+
+        <div id="save-cancel-buttons">
+            <a href="#" ng-click="save()">Save</a>
+            <a href="#" ng-click="saveAndAdd()">Save and Add</a>
+            <a href="#" ng-click="cancel()">Cancel</a>
+        </div>
+
+        <br />
+
+        <div>
+            <a class="primary-button" ng-show="issue.status.id == 'OPEN'" ng-click="resolve()">Resolve</a>
+            <select ng-show="issue.status.id == 'OPEN'" ng-model="resolution" ng-options="resolution as resolution.name for resolution in resolutions"></select>
+
+            <a class="primary-button" ng-show="issue.status.id == 'RESOLVED'" ng-click="reopen()">Reopen</a>
+            <a class="primary-button" ng-show="issue.status.id == 'RESOLVED'" ng-click="close()">Close</a>
+
+            <a class="primary-button" ng-show="issue.status.id == 'CLOSED'" ng-click="reopen()">Reopen</a>
+        </div>
+
+        <table class="issue-view-table">
+            <tr><td><label>Status</label></td><td>{{ issue.status.name }}</td></tr>
+            <tr><td><label>Resolution</label></td><td>{{ issue.status.resolution.name }}</td></tr>
+            <tr><td><label>Project</label></td><td>{{ issue.project.name }}</td></tr>
+            <tr><td><label>Assignee</label></td><td>
+                <select ng-model="issue.assignee" ng-options="user as user.username for user in users">
+                    <option value="">Auto Assign</option>
+                </select>
+            </td></tr>
+            <tr><td><label>Reporter</label></td><td>{{ issue.reporter.username }}</td></tr>
+            <tr><td><label>Milestone</label></td><td>
+                <select ng-model="issue.milestone" ng-options="milestone as milestone.name for milestone in milestones">
+                    <option value="">No Milestone</option>
+                </select>
+            </td></tr>
+            <tr><td><label>Reported</label></td><td>{{ issue.reported | date:'MMMM d, yyyy h:mma' }}</td></tr>
+            <tr><td><label>Updated</label></td><td>{{ issue.lastUpdated | date:'MMMM d, yyyy h:mma' }}</td></tr>
+        </table>
+    </div>
+
+    <div id="issue-component-version-spec">
+        <div>
+            <label for="components">Components</label>
+            <select id="components" multiple ng-model="issue.components" ng-options="component as component.name for component in project.components"></select>
+        </div>
+        <div>
+            <label for="affects-versions">Affects Version</label>
+            <select id="affects-versions" multiple ng-model="issue.affectsVersions" ng-options="version as version.name for version in project.versions"></select>
+        </div>
+        <div>
+            <label for="fix-versions">Fix Versions</label>
+            <select id="fix-versions" multiple ng-model="issue.fixVersions" ng-options="version as version.name for version in project.versions"></select>
+        </div>
+    </div>
+
+    <div id="comments" ng-show="!addMode">
+        <div ng-repeat="comment in comments">
+            <h2>Posted by {{ comment.author.username }} on {{ comment.created | date:'MMMM dd, yyyy h:mma' }}</h2>
+            <pre>{{ comment.text }}</pre>
+        </div>
+
+        <div id="add-comment-to-issue">
+            <h2>Add Comment</h2>
+            <textarea ng-model="commentText"></textarea>
+            <button ng-click="addComment()">Add</button>
+        </div>
+    </div>
+
+    {% endverbatim %}
+
+    {% comment %}
+    {% verbatim %}
+    <div>
+        <h1>Issue</h1>
+        <pre>{{ issue | jsonPrint }}</pre>
+    </div>
+    <div>
+        <h1>Debug</h1>
+        <pre>{{ debug | jsonPrint }}</pre>
+    </div>
+    {% endverbatim %}
+    {% endcomment %}
+
+</div>
+{% endblock %}

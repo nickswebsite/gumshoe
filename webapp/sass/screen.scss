@@ -1,0 +1,129 @@
+/* Welcome to Compass.
+ * In this file you should write your main styles. (or centralize your imports)
+ * Import this file using the following HTML or equivalent:
+ * <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css" /> */
+
+@import "compass/reset";
+@import "base";
+
+h1 {
+  color: $header-fg;
+  background-color: $header-bg;
+  font-weight: bold;
+  font-size: 1.2em;
+  padding: 8px;
+}
+
+body {
+  color: $content-fg;
+  background-color: $content-bg;
+  font-size: $content-font-size;
+  font-family: $content-font-family;
+  margin: auto;
+  width: 80%;
+  display: relative;
+}
+
+a {
+  font-weight: bold;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+label {
+  font-weight: bold;
+}
+
+.section {
+  border: 1px solid $default-border-color;
+  padding: 8px;
+}
+
+.primary-button {
+  display: inline-block;
+  background-color: $primary-button-bg;
+  color: $primary-button-fg;
+  border: 1px solid $primary-button-border-color;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 1px 1px 2px $primary-button-border-color;
+  &:active {
+    box-shadow: none;
+  }
+}
+
+.secondary-button {
+  display: inline-block;
+  background-color: $secondary-button-bg;
+  color: $secondary-button-fg;
+  border: 1px solid $secondary-button-border-color;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 1px 1px 2px $secondary-button-border-color;
+
+  &:active {
+    box-shadow: none;
+  }
+}
+
+.error {
+  color: $content-error-fg;
+}
+
+table.issue-list {
+  border-collapse: collapse;
+  border: 1px solid $header-bg;
+
+  > thead > tr, > tbody > tr {
+    > th {
+      font-weight: bold;
+      color: $header-fg;
+      background-color: $header-bg;
+      padding: 4px 16px;
+      font-size: 1em;
+    }
+
+    > td {
+      padding: 4px 16px;
+      font-size: 0.75em;
+    }
+  }
+
+  > tbody > tr:nth-child(odd) {
+    background-color: $table-alt-row-bg;
+  }
+
+  > tbody > tr:hover {
+    background-color: lighten($table-alt-row-bg, 10%)
+  }
+}
+
+ul.issue-paginator {
+  display: inline-block;
+  > li {
+    display: inline-block;
+    min-width: 16px;
+    padding: 4px;
+    text-align: center;
+    border-radius: 4px;
+    margin-left: 4px;
+    margin-right: 4px;
+
+    > a {
+      &:hover {
+        cursor: default;
+      }
+    }
+
+    &.page-active {
+      background-color: $content-fg;
+      color: $content-bg;
+    }
+  }
+}

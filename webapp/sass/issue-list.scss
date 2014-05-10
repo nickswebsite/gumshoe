@@ -1,0 +1,40 @@
+@import 'base';
+
+#issue-list-view {
+  margin-top: 8px;
+  #issue-actions {
+    display: block;
+    text-align: right;
+    height: 64px;
+
+    #add-issue-button {
+    }
+  }
+
+  #issue-filter-results {
+    table.issue-list {
+    }
+
+    ul.issue-paginator {
+      margin-top: 8px;
+    }
+  }
+
+  #issue-filter-options {
+    float: right;
+    margin-left: 8px;
+    width: 184px;
+    border: 1px solid $header-bg;
+
+    padding: 4px;
+
+    h2 {
+      font-weight: bold;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+    select {
+      width: 100%;
+    }
+  }
+}
