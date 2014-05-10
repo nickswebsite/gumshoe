@@ -9,10 +9,6 @@ from django.contrib.auth.models import User
 from django.db import models
 from gumshoe.models import Project, Version, Component, Priority, IssueType, Issue, Comment
 
-settings_module = os.environ.get("DJANGO_SETTINGS_MODULE")
-if settings_module != "test_project.test_import_settings":
-    raise Exception("Settings module must be test_import_settings")
-
 TEMPORARY_TABLE_NAME = "bugzillaimport"
 class BugzillaIssueMap(models.Model):
     bugzilla_id = models.IntegerField(primary_key=True)
@@ -303,24 +299,20 @@ class Command(BaseCommand):
                 issue.resolution = resolution
                 issue.reported = creation_time
                 issue.last_updated = last_changed
-                log("+")
                 issue.save(update_timestamps=False)
-                log("s")
 
                 issue.affects_versions = [version]
                 issue.fix_versions = [version]
                 issue.components = [component]
-                log("M")
 
                 bugzilla_map = BugzillaIssueMap()
                 bugzilla_map.issue = issue
                 bugzilla_map.bugzilla_id = row["id"]
                 bugzilla_map.save()
-                log("B")
 
                 log_dot()
-                log(" ")
 
+            print("")
             print("Importing comments.")
             cur.execute("""
                 SELECT d.bug_id AS bug,
