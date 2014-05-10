@@ -11,7 +11,7 @@ MANIFEST
 *.tgz
 *.zip
 
-standalone/test_import_settings.*
+standalone/settings_import.py
 
 gumshoe/static/css/
 gumshoe/static/js/
