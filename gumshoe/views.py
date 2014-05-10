@@ -1,12 +1,12 @@
 import datetime
 import time
 
-from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q
 from django.http.response import HttpResponseRedirect, HttpResponse, Http404
 from django.shortcuts import render
+from django.contrib.auth.models import User
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 
@@ -50,6 +50,11 @@ def issue_form(request, issue_key=None):
 @login_required
 def issue_list_view(request):
     return render(request, "gumshoe/issue-list.html")
+
+@login_required
+def logout(request):
+    auth.logout(request)
+    return HttpResponseRedirect("/login/")
 
 @login_required
 def tests_view(request):
@@ -281,6 +286,7 @@ class IssueViewSet(viewsets.ViewSet):
         affects_versions_param = request.GET.get("affects_versions")
         assignees_param = request.GET.get("assignees")
         milestones_param = request.GET.get("milestones")
+        terms_param = request.GET.get("terms")
 
         order_by_param = request.GET.get("order_by")
 
@@ -318,7 +324,11 @@ class IssueViewSet(viewsets.ViewSet):
                 milestone_pks.remove(-1)
             q["milestone__pk__in"] = milestone_pks
 
-        qs = Issue.objects.filter(**q)
+        query = Q(**q)
+        if terms_param:
+            query = query & (Q(summary__contains=terms_param) | Q(description__contains=terms_param) | Q(issue_key=terms_param))
+
+        qs = Issue.objects.filter(query)
         if no_fix_version:
             qs |= Issue.objects.filter(fix_versions=None)
         if no_affects_version:

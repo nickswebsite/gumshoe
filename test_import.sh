@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export DJANGO_SETTINGS_MODULE=test_project.test_import_settings
+export DJANGO_SETTINGS_MODULE=standalone.test_import_settings
 
 env/.v/bin/python manage.py sqlclear gumshoe | env/.v/bin/python manage.py dbshell
 env/.v/bin/python manage.py syncdb --noinput

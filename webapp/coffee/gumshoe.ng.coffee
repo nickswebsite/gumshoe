@@ -14,10 +14,6 @@ userManager = Gumshoe.userManager
 MilestoneManager = Gumshoe.MilestoneManager
 milestoneManager = Gumshoe.milestoneManager
 
-TEST_MILESTONES = [
-  new Milestone( 1, "Iteration 1" )
-]
-
 # GLOBAL APP LEVEL CONSTANTS
 PAGES =
   ISSUES_ADD: "/forms/add_issue"
@@ -28,9 +24,9 @@ API =
   ISSUES_LIST: "/rest/issues/"
 
 class IssueListCtrl
-  @$inject = [ "$scope", "$http", "$q", "projectsService", "usersService", "milestonesService" ]
+  @$inject = [ "$scope", "$http", "$q", "searchService", "projectsService", "usersService", "milestonesService" ]
 
-  constructor: ( @scope, @http, @q, @projectsService, @usersService, @milestonesService ) ->
+  constructor: ( @scope, @http, @q, @searchService, @projectsService, @usersService, @milestonesService ) ->
     @scope.issues = []
     @scope.issuesFilter = new IssueFilter( @projectsService.getAll(),
                                           [ "Open", "Resolved", "Closed" ],
@@ -52,6 +48,9 @@ class IssueListCtrl
     @scope.refresh = () => @fetchIssueList()
     @scope.addIssue = () => @addIssue()
     @scope.saveSettings = () => @saveSearchSettings()
+
+    @scope.$on "navbar.search.submit", ( evt, data ) =>
+      @fetchIssueList()
 
     @http.get( "/rest/settings/" ).success( ( data, status, headers, config ) =>
       if !data.unsaved
@@ -104,12 +103,13 @@ class IssueListCtrl
       assignees: ( user.id for user in @scope.issuesFilter.assigneesSelected )
       currentPage: @scope.currentPage
       pageSize: @scope.pageSize
+      searchTerms: @searchService.getSearchTerms()
       ordering:
         priority: @scope.priorityHeader.direction
         issueKey: @scope.issueKeyHeader.direction
         resolution: @scope.resolutionHeader.direction
 
-    @http.put("/rest/settings/", dto).success( () =>
+    @http.put( "/rest/settings/", dto).success( () =>
       defered.resolve()
     ).error ( () =>
       defered.reject()
@@ -125,12 +125,15 @@ class IssueListCtrl
     @scope.issuesFilter.setSelectedAssigneesByIds( dto.assignees || [] )
     @scope.issuesFilter.setSelectedMilestones( dto.milestones || [] )
 
+    @searchService.setSearchTerms( dto.searchTerms || "" )
+
     @scope.pageSize = dto.pageSize
     @scope.currentPage = dto.currentPage
 
-    @scope.priorityHeader.setState( dto.ordering.priority )
-    @scope.issueKeyHeader.setState( dto.ordering.issueKey )
-    @scope.resolutionHeader.setState( dto.ordering.resolution )
+    if dto.ordering
+      @scope.priorityHeader.setState( dto.ordering.priority )
+      @scope.issueKeyHeader.setState( dto.ordering.issueKey )
+      @scope.resolutionHeader.setState( dto.ordering.resolution )
 
     @fetchIssueList()
 
@@ -149,6 +152,10 @@ class IssueListCtrl
 
     if orderByParams.length != 0
       params.order_by = orderByParams.join( "," )
+
+    terms = @searchService.getSearchTerms()
+    if terms
+      params.terms = terms
 
     @http.get( API.ISSUES_LIST, { params: params } ).success( ( data, status, headers, config ) =>
       @scope.issues = ( Issue.fromDTO( i ) for i in data.results )
@@ -225,6 +232,14 @@ class UpdateIssueCtrl
     @scope.close = () => @close()
     @scope.addComment = () => @addComment( @scope.commentText )
 
+    @scope.$on "navbar.search.submit", ( event, data ) =>
+      dto =
+        searchTerms: data.searchTerms
+
+      @http.put( '/rest/settings/', dto ).success ( ( data, status, headers, config ) =>
+        window.location = PAGES.ISSUES_LIST
+      )
+
   addComment: ( text ) ->
     pl =
       text: text
@@ -284,13 +299,28 @@ class UpdateIssueCtrl
     @scope.resolution = @scope.issue.status.resolution
     @save()
 
+class NavBarCtrl
+  @$inject = [ '$scope', '$rootScope', 'searchService' ]
 
+  constructor: ( @scope, @rootScope, @searchService ) ->
+    @scope.searchTerms = ""
+    @scope.submitSearch = () => @searchSubmitted()
+
+    @scope.$watch 'searchTerms', () =>
+      @searchService.setSearchTerms( @scope.searchTerms )
+
+    @scope.$on 'search.terms.update', ( evt, data ) =>
+      @scope.searchTerms = @searchService.getSearchTerms()
+
+  searchSubmitted: () ->
+    @rootScope.$broadcast("navbar.search.submit", { "searchTerms": @scope.searchTerms } )
 
 gumshoe = angular.module( "gumshoe", [ 'gumshoe.initial', 'ui.bootstrap.pagination' ] )
 
 # Register UpdateIssueCtrl
 gumshoe.controller 'UpdateIssueCtrl', UpdateIssueCtrl
 gumshoe.controller 'IssueListCtrl', IssueListCtrl
+gumshoe.controller 'NavBarCtrl', NavBarCtrl
 
 # Register projectService
 gumshoe.factory 'projectsService', ['$http', 'PROJECTS', ( http, PROJECTS ) ->
@@ -318,6 +348,14 @@ gumshoe.factory 'milestonesService', ['$http', 'MILESTONES', ( http, MILESTONES 
       milestoneManager.putMilestone( Milestone.fromDTO( milestone ) )
   getMilestonById: ( id ) -> milestoneManager.getMilestonById( id )
   getAll: () -> milestoneManager.getAllMilestones()
+]
+
+gumshoe.factory 'searchService', [ '$http', '$rootScope', ( http, rootScope ) ->
+  currentSearchTerms = ""
+  setSearchTerms: ( terms ) ->
+    currentSearchTerms = terms
+    rootScope.$broadcast "search.terms.update", {}
+  getSearchTerms: () -> currentSearchTerms
 ]
 
 # filter for debugger output

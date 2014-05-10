@@ -369,6 +369,32 @@ class IssueFilterTests(IssueTestCaseBase, TestCaseBase):
         self.assertEqual(3, len(res["results"]))
         self.assertListEqual([issue_blk.pk, issue_maj.pk, issue_min.pk], [i["id"] for i in res["results"]])
 
+    def test_filter_by_term_issue_key(self):
+        issue1 = self.generate_issue()
+        # noise
+        issue2 = self.generate_issue()
+        issue3 = self.generate_issue()
+
+        res = self.client.get("/rest/issues/?terms={0}".format(issue1.issue_key))
+        self.assertEqual(200, res.status_code)
+        res = json.loads(res.content)
+
+        self.assertEqual(1, len(res["results"]))
+        self.assertEqual(issue1.issue_key, res["results"][0]["issueKey"])
+
+    def test_filter_by_term(self):
+        issue1 = self.generate_issue()
+        issue2 = self.generate_issue(summary="{0} summary {1}".format(random_string(15), random_string(15)))
+        issue3 = self.generate_issue(description="{0} summary {1}".format(random_string(), random_string()))
+
+        res = self.client.get("/rest/issues/?terms=summary")
+        self.assertEqual(200, res.status_code)
+        res = json.loads(res.content)
+
+        self.assertEqual(2, len(res["results"]))
+        self.assertSetEqual({issue2.issue_key, issue3.issue_key}, set(r["issueKey"] for r in res["results"]))
+
+
 
 
 
