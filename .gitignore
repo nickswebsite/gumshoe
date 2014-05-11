@@ -17,6 +17,8 @@ gumshoe/static/css/
 gumshoe/static/js/
 gumshoe/static/tests/
 
+tmp/
+
 # exclude binary files.
 gumshoe/static/img/
 

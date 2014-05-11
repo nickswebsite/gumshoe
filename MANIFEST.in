@@ -1,1 +1,1 @@
-recursive-include gumshoe *.html *.js *.css
+recursive-include gumshoe *.html *.js *.css *.json

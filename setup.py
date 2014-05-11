@@ -11,5 +11,17 @@ setup(
     author="The Magnificant Nick",
     author_email="send_me_spam@yahoo.com",
     url="http://www.nickwebsite.net/gumshoe/",
-    packages=["gumshoe", "gumshoe.management", "gumshoe.management.commands"]
+    packages=["gumshoe", "gumshoe.management", "gumshoe.management.commands", "gumshoe.south_migrations", "standalone"],
+    entry_points={
+        'console_scripts': [
+            'gumshoe=standalone.commands:gumshoe_manage',
+            'gumshoe-init=standalone.commands:gumshoe_init_standalone',
+        ]
+    },
+    install_requires=[
+        'pytz',
+        'Django==1.6',
+        'south',
+        'djangorestframework',
+    ]
 )
