@@ -71,11 +71,11 @@ class IssueListCtrl
       if newValue && newValue != oldValue
         @fetchIssueList()
 
-    @scope.watch "issueKeyHeader.direction", ( newValue, oldValue ) =>
+    @scope.$watch "issueKeyHeader.direction", ( newValue, oldValue ) =>
       if newValue && newValue != oldValue
         @fetchIssueList()
 
-    @scope.watch "resolutionHeader.direction", ( newValue, oldValue ) =>
+    @scope.$watch "resolutionHeader.direction", ( newValue, oldValue ) =>
       if newValue && newValue != oldValue
         @fetchIssueList()
 

@@ -6,9 +6,11 @@ import uuid
 import subprocess
 import contextlib
 import getpass
+import sys
 
 class Settings(object):
-    INSTALL = ["nodejs", "coffeescript", "virtualenv", "ruby", "compass"]
+    INSTALL_DEV = ["nodejs", "coffeescript", "virtualenv", "ruby", "compass"]
+    INSTALL_PRODUCTION = ["virtualenv"]
 
     PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
     TMP_BASE = uuid.uuid4().hex
@@ -160,7 +162,13 @@ def coffeescript():
     execute([os.path.join(settings.ENV_ROOT, os.path.join(settings.NODEJS_SYMLINK, "bin/npm")), "install", "-g", "coffee-script"])
 
 if __name__ == "__main__":
-    TASKS = settings.INSTALL
+    if "install" in sys.argv:
+        TASKS = settings.INSTALL_PRODUCTION
+    elif "install-dev" in sys.argv:
+        TASKS = settings.INSTALL_DEV
+    else:
+        raise Exception("Must specify either install or install-dev as an argument.")
+
     try:
         os.makedirs(settings.TMP_BASE)
 

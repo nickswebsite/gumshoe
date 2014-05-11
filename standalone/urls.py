@@ -5,7 +5,6 @@ admin.autodiscover()
 
 import gumshoe.views
 
-
 urlpatterns = patterns('',
     # Examples:
     # url(r'^$', 'test_tracker.views.home', name='home'),
@@ -21,7 +20,7 @@ urlpatterns = patterns('',
     url(r'^test/', 'gumshoe.views.test_view', name='test_view'),
     url(r'^tests', 'gumshoe.views.tests_view', name='issues_test'),
 
-    url(r'rest/', include(gumshoe.views.router.urls)),
+    url(r'^rest/', include(gumshoe.views.router.urls)),
     url(r'^rest/settings/$', 'gumshoe.views.settings_view', name='settings'),
     url(r'^rest/components/(?P<pk>[0-9]+)', gumshoe.views.ComponentDetailView.as_view(), name="components_detail"),
     url(r'^rest/versions/(?P<pk>[0-9]+)', gumshoe.views.VersionDetailView.as_view(), name='versions_detail'),
