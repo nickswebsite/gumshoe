@@ -21,7 +21,7 @@ def gumshoe_init_standalone():
         os.mkdir(config_dir)
     with open(os.path.join(config_dir, "__init__.py", "a")):
         pass
-    with open(os.path.join(config_dir, "settings.py", "w") as f:
+    with open(os.path.join(config_dir, "settings.py"), "w") as f:
         f.write("""from standalone.settings import *
 """)
 
