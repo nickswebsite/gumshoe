@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
+from django.core.urlresolvers import reverse
 
 from rest_framework.decorators import api_view, link, action
 from rest_framework.pagination import PaginationSerializer
@@ -471,9 +472,17 @@ router.register(r'issues', IssueViewSet)
 router.register(r'users', UsersViewSet)
 router.register(r'milestones', MilestoneViewSet)
 
+@login_required()
 def settings_view(request):
     if request.method == "PUT":
         request.session["settings"] = request.body
     res = request.session.get("settings", '{"unsaved": true}')
     return HttpResponse(res, content_type="application/json", status=200)
 
+@api_view(["GET"])
+def pages_view(request):
+    return Response({
+        "issues_add": reverse('issues_add_form'),
+        "issues": reverse('issues_list_form'),
+        "user_home": reverse('issues_list_form'),
+    })

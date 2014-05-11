@@ -3,6 +3,7 @@
 
 {% block scripts %}
     {{ block.super }}
+    <script>var GUMSHOE_API_ROOT = "{% url 'api-root' %}";</script>
     <script src="{% static 'js/URI.js' %}"></script>
     <script src="{% static 'js/angular.js' %}"></script>
     <script src="{% static 'js/ui-bootstrap-custom-0.10.0.js' %}"></script>

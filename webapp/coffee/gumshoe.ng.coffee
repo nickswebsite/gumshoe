@@ -16,12 +16,12 @@ milestoneManager = Gumshoe.milestoneManager
 
 # GLOBAL APP LEVEL CONSTANTS
 PAGES =
-  ISSUES_ADD: "/forms/add_issue"
-  ISSUES_LIST: "/"
-  USER_HOME: "/"
+  issuesAdd: "/issues/_add"
+  issues: "/issues/"
+  userHome: "/issues/"
 
 API =
-  ISSUES_LIST: "/rest/issues/"
+  issues: "/rest/issues/"
 
 class IssueListCtrl
   @$inject = [ "$scope", "$http", "$q", "searchService", "projectsService", "usersService", "milestonesService" ]
@@ -52,7 +52,7 @@ class IssueListCtrl
     @scope.$on "navbar.search.submit", ( evt, data ) =>
       @fetchIssueList()
 
-    @http.get( "/rest/settings/" ).success( ( data, status, headers, config ) =>
+    @http.get( API.settings ).success( ( data, status, headers, config ) =>
       if !data.unsaved
         @restoreSearchSettings( data )
       else
@@ -88,7 +88,7 @@ class IssueListCtrl
     else
       projectId = @scope.issuesFilter.projectsSelected[0].id
       @saveSearchSettings().then( () =>
-        window.location = "/forms/add_issue?project=#{projectId}"
+        window.location = PAGES.issuesAdd + "?project=#{projectId}"
       )
 
   saveSearchSettings: () ->
@@ -109,7 +109,7 @@ class IssueListCtrl
         issueKey: @scope.issueKeyHeader.direction
         resolution: @scope.resolutionHeader.direction
 
-    @http.put( "/rest/settings/", dto).success( () =>
+    @http.put( API.settings, dto).success( () =>
       defered.resolve()
     ).error ( () =>
       defered.reject()
@@ -157,7 +157,7 @@ class IssueListCtrl
     if terms
       params.terms = terms
 
-    @http.get( API.ISSUES_LIST, { params: params } ).success( ( data, status, headers, config ) =>
+    @http.get( API.issues, { params: params } ).success( ( data, status, headers, config ) =>
       @scope.issues = ( Issue.fromDTO( i ) for i in data.results )
       @scope.totalIssues = data.count
       @scope.totalPages = Math.ceil( @scope.totalIssues / @scope.pageSize )
@@ -170,7 +170,7 @@ class UpdateIssueCtrl
 
   constructor: ( @scope, @http, @location, @projectsService, @usersService, @milestonesService ) ->
     url = new Url( @location.absUrl() )
-    if url.path == '/forms/add_issue'
+    if url.path == PAGES.issuesAdd
       @scope.addMode = true
     else
       @scope.addMode = false
@@ -183,13 +183,13 @@ class UpdateIssueCtrl
     @scope.comments = null
     @scope.commentText = ""
 
-    @issueEndpoint = "#{API.ISSUES_LIST}"
+    @issueEndpoint = "#{API.issues}"
     @issueCommentsEndpoint = null
 
     if !@scope.addMode
       parts = url.path.split("/")
       issueKey = parts.pop()
-      @issueEndpoint = "#{API.ISSUES_LIST}#{issueKey}/"
+      @issueEndpoint = "#{API.issues}#{issueKey}/"
       @issueCommentsEndpoint = "#{@issueEndpoint}comments/"
 
       @http.get( @issueEndpoint ).success ( ( data, status, headers, config ) =>
@@ -224,7 +224,7 @@ class UpdateIssueCtrl
       @scope.priorities = @scope.project.priorities
       @scope.resolutions = @scope.project.resolutions
 
-    @scope.save = () => @save( PAGES.USER_HOME )
+    @scope.save = () => @save( PAGES.userHome )
     @scope.saveAndAdd = () => @saveAndAdd()
     @scope.cancel = () => @cancel()
     @scope.resolve = () => @resolve()
@@ -236,8 +236,8 @@ class UpdateIssueCtrl
       dto =
         searchTerms: data.searchTerms
 
-      @http.put( '/rest/settings/', dto ).success ( ( data, status, headers, config ) =>
-        window.location = PAGES.ISSUES_LIST
+      @http.put( API.settings, dto ).success ( ( data, status, headers, config ) =>
+        window.location = PAGES.issues
       )
 
   addComment: ( text ) ->
@@ -269,10 +269,10 @@ class UpdateIssueCtrl
   save: ( redirectUrl ) ->
     issuePayload = @constructIssuePayload( @scope.issue )
     if @scope.addMode
-      uri = API.ISSUES_LIST
+      uri = API.issues
       method = "post"
     else
-      uri = "#{API.ISSUES_LIST}#{@scope.issue.issueKey}/"
+      uri = "#{API.issues}#{@scope.issue.issueKey}/"
       method = "put"
 
     @http[method]( uri, issuePayload ).success ( (data, status, headers, config) =>
@@ -281,10 +281,10 @@ class UpdateIssueCtrl
     )
 
   saveAndAdd: () ->
-    @save("#{PAGES.ISSUES_ADD}?project=#{@scope.issue.project.id}")
+    @save( "#{PAGES.issuesAdd}?project=#{@scope.issue.project.id}" )
 
   cancel: () ->
-    window.location = PAGES.USER_HOME
+    window.location = PAGES.userHome
 
   resolve: () ->
     @scope.issue.resolve( @scope.resolution )
@@ -368,12 +368,12 @@ gumshoe.run [ 'usersService', ( usersService ) -> usersService.init() ]
 gumshoe.run [ 'milestonesService', ( milestoneService ) -> milestoneService.init() ]
 
 # configure CSRF compatiblity for django
-gumshoe.config ["$httpProvider", ( $httpProvider ) ->
+gumshoe.config [ "$httpProvider", ( $httpProvider ) ->
   $httpProvider.defaults.xsrfCookieName = "csrftoken"
   $httpProvider.defaults.xsrfHeaderName = "X-CSRFToken"
 ]
 
-class Semiphore
+class Semaphore
   constructor: ( @stageCount, @callback ) -> @stagesDone = []
 
   signal: ( stage ) ->
@@ -388,24 +388,39 @@ bootstrap = () ->
       angular.bootstrap document, [ 'gumshoe' ]
     )
 
-  semiphore = new Semiphore( 3, () => bootstrapAngular() )
+  semaphore = new Semaphore( 5, () => bootstrapAngular() )
 
   initInjector = angular.injector [ 'ng' ]
   initial = angular.module( 'gumshoe.initial', [] )
   http = initInjector.get '$http'
-  http.get( "/rest/projects/" ).success( ( data ) ->
-    initial.constant "PROJECTS", data
-    semiphore.signal 'PROJECTS'
+  http.get( GUMSHOE_API_ROOT || 'rest/' ).success( ( data ) ->
+    initial.constant "GUMSHOE_API_ROOT", data
+    API = data
+    API.settings = GUMSHOE_API_ROOT + "settings/"
+    API.pages = GUMSHOE_API_ROOT + "pages/"
+
+    semaphore.signal "GUMSHOE_API_ROOT"
+
+    http.get( API.pages ).success ( ( data ) ->
+      PAGES = data;
+      semaphore.signal 'PAGES'
+    )
+
+    http.get( API.projects ).success( ( data ) ->
+      initial.constant "PROJECTS", data
+      semaphore.signal 'PROJECTS'
+    )
+
+    http.get( API.users ).success( ( data ) ->
+      initial.constant "USERS", data
+      semaphore.signal 'USERS'
+    )
+
+    http.get( API.milestones ).success( ( data ) ->
+      initial.constant "MILESTONES", data
+      semaphore.signal "MILESTONES"
+    )
   )
 
-  http.get( "/rest/users/" ).success( ( data ) ->
-    initial.constant "USERS", data
-    semiphore.signal 'USERS'
-  )
-
-  http.get( "/rest/milestones" ).success( ( data ) ->
-    initial.constant "MILESTONES", data
-    semiphore.signal "MILESTONES"
-  )
 
 bootstrap()
