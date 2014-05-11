@@ -11,11 +11,11 @@ setup(
     author="The Magnificant Nick",
     author_email="send_me_spam@yahoo.com",
     url="http://www.nickwebsite.net/gumshoe/",
-    packages=["gumshoe", "gumshoe.management", "gumshoe.management.commands", "gumshoe.south_migrations", "standalone"],
+    packages=["gumshoe", "gumshoe.management", "gumshoe.management.commands", "gumshoe.south_migrations", "gumshoe.standalone"],
     entry_points={
         'console_scripts': [
-            'gumshoe=standalone.commands:gumshoe_manage',
-            'gumshoe-init=standalone.commands:gumshoe_init_standalone',
+            'gumshoe=gumshoe.standalone.commands:gumshoe_manage',
+            'gumshoe-init=gumshoe.standalone.commands:gumshoe_init_standalone',
         ]
     },
     install_requires=[

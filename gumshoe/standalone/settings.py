@@ -10,7 +10,7 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 REST_FRAMEWORK = {
     #'PAGINATE_BY': 2
@@ -66,7 +66,7 @@ INSTALLED_APPS = (
 SITE_ID = 0
 
 MIDDLEWARE_CLASSES = (
-    'standalone.middleware.ExceptionLoggerMiddleware',
+    'gumshoe.standalone.middleware.ExceptionLoggerMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,9 +75,9 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-ROOT_URLCONF = 'standalone.urls'
+ROOT_URLCONF = 'gumshoe.standalone.urls'
 
-WSGI_APPLICATION = 'standalone.wsgi.application'
+WSGI_APPLICATION = 'gumshoe.standalone.wsgi.application'
 
 
 # Database
