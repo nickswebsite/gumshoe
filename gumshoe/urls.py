@@ -12,6 +12,7 @@ rest_urlpatterns = patterns('',
 )
 
 page_urlpatterns = patterns('',
+    url(r'^$', 'gumshoe.views.index', name='index'),
     url(r'^issues/_add$', 'gumshoe.views.issue_form', name='issues_add_form'),
     url(r'^issues/(?P<issue_key>[A-Z]+-\d+)$', 'gumshoe.views.issue_form', name='issue_edit_form'),
     url(r'^issues/$', 'gumshoe.views.issue_list_view', name='issues_list_form'),

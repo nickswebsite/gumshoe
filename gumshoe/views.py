@@ -25,6 +25,10 @@ def now():
 def test_view(request):
     return render(request, "base.html")
 
+@login_required()
+def index(request):
+    return HttpResponseRedirect(reverse('issues_list_form'))
+
 def login(request):
     context_dict = {}
     if request.method == "GET":
