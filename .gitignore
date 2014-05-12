@@ -24,6 +24,8 @@ gumshoe/static/img/
 
 # exclude build directory.
 dist/
+build/
+gumshoe.egg-info/
 
 # exclude environment and cache directories.
 env/

@@ -1,4 +1,6 @@
 include README.md
+include VERSION
+include CLASSIFIERS
 
 recursive-include gumshoe/templates *
 recursive-include gumshoe/static *
