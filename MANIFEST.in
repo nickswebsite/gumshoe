@@ -1,1 +1,6 @@
-recursive-include gumshoe *.html *.js *.css *.json
+include README.md
+
+recursive-include gumshoe/templates *
+recursive-include gumshoe/static *
+recursive-include gumshoe/fixtures *
+

@@ -7,9 +7,9 @@ def gumshoe_manage():
     sys.path.insert(0, cwd)
 
     if "test" in sys.argv:
-        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "standalone.settings_test")
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gumshoe.standalone.settings_test")
     else:
-        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "standalone.settings")
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gumshoe.standalone.settings")
 
     from django.core.management import execute_from_command_line
 
