@@ -2,16 +2,7 @@
 Set up file for the django app.  A different setup file will be created for
 the standalone package.
 """
-#from distutils.core import setup, find_packages
 from setuptools import setup, find_packages
-
-package_data = {
-                 "gumshoe": [
-                     "templates/*",
-                     "static/js/*",
-                     "static/css/*",
-                     ],
-                 }
 
 setup(
     name="gumshoe",
