@@ -1,36 +1,34 @@
-import datetime
-import time
-
 from django.contrib import auth
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http.response import HttpResponseRedirect, HttpResponse, Http404
 from django.shortcuts import render
 from django.urls import reverse
 
-from rest_framework import generics, serializers, viewsets, routers
+from rest_framework import generics, viewsets, routers
 from rest_framework.decorators import api_view, action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from gumshoe.models import Project, IssueType, Issue, Priority, Component, Version, Milestone, Comment
+from gumshoe.serializers import VersionSerializer, ComponentSerializer, ProjectSerializer, MilestoneSerializer, \
+    CommentSerializer, UserSerializer, IssueSerializer
+from gumshoe.models import Project, Issue, Component, Version, Milestone, Comment
 
 
-def now():
-    return datetime.datetime.utcnow()
-
-
-def test_view(request):
-    return render(request, "base.html")
-
+#####################################
+#  Entry point
+#####################################
 
 @login_required()
 def index(request):
     return HttpResponseRedirect(reverse('issues_list_form'))
 
+
+#####################################
+#  Login and Logout
+#####################################
 
 def login(request):
     context_dict = {}
@@ -53,6 +51,16 @@ def login(request):
 
 
 @login_required
+def logout(request):
+    auth.logout(request)
+    return HttpResponseRedirect("/login/")
+
+
+#####################################
+#  Angular Templates
+#####################################
+
+@login_required
 def issue_form(request, issue_key=None):
     return render(request, "gumshoe/update-issue.html")
 
@@ -62,11 +70,9 @@ def issue_list_view(request):
     return render(request, "gumshoe/issue-list.html")
 
 
-@login_required
-def logout(request):
-    auth.logout(request)
-    return HttpResponseRedirect("/login/")
-
+#####################################
+#  Testing stuff
+#####################################
 
 @login_required
 def tests_view(request):
@@ -85,6 +91,22 @@ def tests_view(request):
     return render(request, "tests/test-main.html", ctx)
 
 
+#####################################
+#  UI Support
+#####################################
+
+@login_required()
+def settings_view(request):
+    if request.method == "PUT":
+        request.session["settings"] = request.body.decode()
+    res = request.session.get("settings", '{"unsaved": true}')
+    return HttpResponse(res, content_type="application/json", status=200)
+
+
+#####################################
+#  REST API
+#####################################
+
 @api_view(['GET'])
 def api_root(request, format=None):
     """
@@ -95,219 +117,13 @@ def api_root(request, format=None):
     })
 
 
-class VersionSerializer(serializers.HyperlinkedModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name="versions_detail", lookup_field="pk")
-
-    class Meta:
-        model = Version
-        fields = ('id', 'url', 'name', 'description')
-        lookup_field = "versions_detail"
-
-
-class ComponentSerializer (serializers.HyperlinkedModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name="components_detail", lookup_field="pk")
-
-    class Meta:
-        model = Component
-        fields = ('id', 'url', 'name', 'description')
-
-
-class PrioritySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Priority
-        fields = ('id', 'name', 'short_name', 'weight')
-
-
-class ProjectSerializer (serializers.HyperlinkedModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name="project-detail", lookup_field="pk")
-    components = ComponentSerializer(many=True, source="component_set", read_only=True)
-    versions = VersionSerializer(many=True, source="version_set", read_only=True)
-    priorities = serializers.SerializerMethodField()
-    issue_types = serializers.SerializerMethodField()
-    statuses = serializers.SerializerMethodField()
-    resolutions = serializers.SerializerMethodField()
-
-    def get_priorities(self, obj):
-        return PrioritySerializer(list(Priority.objects.all()), many=True).data
-
-    def get_issue_types(self, obj):
-        return [issue_type.short_name for issue_type in IssueType.objects.all()]
-
-    def get_resolutions(self, obj):
-        return [resolution[0] for resolution in Issue.RESOLUTION_CHOICES]
-
-    def get_statuses(self, obj):
-        return [status[0] for status in Issue.STATUS_CHOICES]
-
-    class Meta:
-        model = Project
-        fields = ('id', 'url', 'name', 'description', 'issue_key', 'components', 'versions', 'priorities', 'issue_types', 'resolutions', 'statuses')
-
-
-class _WritableField(serializers.Field):
-    def to_internal_value(self, data):
-        return self.from_native(data)
-
-    def to_representation(self, value):
-        return self.to_native(value)
-
-
-class PkListField(_WritableField):
-    def to_native(self, obj):
-        if hasattr(obj, "all"):
-            return [o.pk for o in obj.all()]
-        else:
-            return [o.pk for o in obj]
-
-    def from_native(self, value):
-        if isinstance(value, list):
-            return value
-        else:
-            msg = self.error_messages["invalid"]
-            raise ValidationError(msg)
-
-
-class PkField(_WritableField):
-    def to_native(self, obj):
-        if obj is not None:
-            return obj.pk
-        return None
-
-    def from_native(self, value):
-        if isinstance(value, int) or value is None:
-            return value
-        msg = self.error_messages["invalid"]
-        raise ValidationError(msg)
-
-
-class ShortNameField(_WritableField):
-    def to_representation(self, value):
-        return value.short_name
-
-    def to_internal_value(self, data):
-        if not isinstance(data, str):
-            raise ValidationError(self.error_messages["invalid"])
-
-        try:
-            return self.model.objects.get(short_name=data)
-        except self.model.DoesNotExist:
-            raise ValidationError(self.error_messages["invalid"])
-
-
-class IssueTypeField(ShortNameField):
-    model = IssueType
-
-
-class PriorityField(ShortNameField):
-    model = Priority
-
-
-class UnixtimeField(serializers.DateTimeField):
-    def __init__(self, *args, **kwds):
-        is_java_time = kwds.pop("millis", False)
-        if is_java_time:
-            self.scaling = 1000
-        else:
-            self.scaling = 1
-
-        super(UnixtimeField, self).__init__(*args, **kwds)
-
-    def to_native(self, value):
-        return int(time.mktime(value.timetuple())) * self.scaling
-
-    def from_native(self, value):
-        return datetime.datetime.fromtimestamp(int(value) / self.scaling)
-
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email')
-        read_only_fields = ('id', 'username', 'first_name', 'last_name')
-
-
-class MilestoneSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Milestone
-        fields = ("id", "name", "description")
-
-
-class CommentSerializer(serializers.Serializer):
-    id = serializers.IntegerField(source="pk", required=False)
-    author = UserSerializer(read_only=True)
-    created = UnixtimeField(read_only=True, millis=True)
-    updated = UnixtimeField(read_only=True, millis=True)
-    text = serializers.CharField(required=True)
-
-    def _restore_object(self, attrs, instance=None):
-        instance = instance or Comment()
-        instance.text = attrs.get("text")
-        instance.pk = attrs.get("pk")
-        return instance
-
-    def create(self, validated_data):
-        return self._restore_object(validated_data)
-
-    def update(self, instance, validated_data):
-        return self._restore_object(validated_data, instance)
-
-
-class IssueSerializer(serializers.Serializer):
-    id = serializers.IntegerField(source="pk", required=False)
-    url = serializers.HyperlinkedIdentityField(view_name="issue-detail", lookup_field="issue_key")
-    summary = serializers.CharField()
-    description = serializers.CharField(required=False, allow_blank=True)
-    steps_to_reproduce = serializers.CharField(required=False, allow_blank=True)
-    issue_key = serializers.CharField(read_only=True)
-    components = PkListField(required=False)
-    affects_versions = PkListField(required=False)
-    fix_versions = PkListField(required=False)
-    project = PkField()
-    status = serializers.ChoiceField(choices=Issue.STATUS_CHOICES)
-    resolution = serializers.ChoiceField(choices=Issue.RESOLUTION_CHOICES)
-    issue_type = IssueTypeField()
-    priority = PriorityField()
-    assignee_id = PkField(required=False, write_only=True, allow_null=True)
-    assignee = UserSerializer(required=False, allow_null=True)
-    reporter = UserSerializer(read_only=True)
-    reported = UnixtimeField(millis=True, read_only=True)
-    last_updated = UnixtimeField(millis=True, read_only=True)
-
-    milestone_id = PkField(required=False, write_only=True, allow_null=True)
-    milestone = MilestoneSerializer(required=False, read_only=True)
-
-    def _restore_object(self, attrs, instance=None):
-        issue = instance or Issue()
-        issue.summary = attrs.get("summary") or issue.summary
-        issue.description = attrs.get("description") or issue.description
-        issue.steps_to_reproduce = attrs.get("steps_to_reproduce") or issue.steps_to_reproduce
-        issue.project = Project.objects.get(pk=attrs.get("project"))
-        issue.issue_type = attrs.get("issue_type")
-        issue.priority = attrs.get("priority")
-
-        milestone_id = attrs.get("milestone_id")
-        if milestone_id:
-            issue.milestone = Milestone.objects.get(pk=milestone_id)
-        else:
-            issue.milestone = None
-
-        issue.status = attrs.get("status") or issue.status
-        issue.resolution = attrs.get("resolution") or issue.resolution
-
-        if attrs.get("assignee_id"):
-            issue.assignee = User.objects.get(pk=attrs["assignee_id"])
-
-        issue.components_detached = issue.project.component_set.filter(pk__in=attrs.get("components"))
-        issue.affects_versions_detached = issue.project.version_set.filter(pk__in=attrs.get("affects_versions"))
-        issue.fix_versions_detached = issue.project.version_set.filter(pk__in=attrs.get("fix_versions"))
-
-        return issue
-
-    def create(self, validated_data):
-        return self._restore_object(validated_data)
-
-    def update(self, instance, validated_data):
-        return self._restore_object(validated_data, instance)
+@api_view(["GET"])
+def pages_view(request):
+    return Response({
+        "issues_add": reverse('issues_add_form'),
+        "issues": reverse('issues_list_form'),
+        "user_home": reverse('issues_list_form'),
+    })
 
 
 class ModelPaginationSerializer(object):
@@ -342,9 +158,6 @@ class IssueViewSet(viewsets.ViewSet):
     lookup_field = "issue_key"
 
     def list(self, request):
-        page_size = request.GET.get("page_size", 25)
-        page = request.GET.get("page", 1)
-
         projects_param = request.GET.get("projects")
         statuses_param = request.GET.get("statuses")
         fix_versions_param = request.GET.get("fix_versions")
@@ -535,20 +348,3 @@ router.register(r'projects', ProjectViewSet)
 router.register(r'issues', IssueViewSet)
 router.register(r'users', UsersViewSet)
 router.register(r'milestones', MilestoneViewSet)
-
-
-@login_required()
-def settings_view(request):
-    if request.method == "PUT":
-        request.session["settings"] = request.body.decode()
-    res = request.session.get("settings", '{"unsaved": true}')
-    return HttpResponse(res, content_type="application/json", status=200)
-
-
-@api_view(["GET"])
-def pages_view(request):
-    return Response({
-        "issues_add": reverse('issues_add_form'),
-        "issues": reverse('issues_list_form'),
-        "user_home": reverse('issues_list_form'),
-    })
