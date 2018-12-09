@@ -13,7 +13,14 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 REST_FRAMEWORK = {
-    #'PAGINATE_BY': 2
+    'PAGE_SIZE': 50,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
     'DEFAULT_RENDERER_CLASSES': (
         'gumshoe.renderers.CaseConvertingJSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer'
@@ -28,11 +35,7 @@ REST_FRAMEWORK = {
     ),
     'TEST_PARSER_CLASSES': (
         'gumshoe.renderers.CaseConvertingJSONParser',
-    )
-}
-
-SOUTH_MIGRATION_MODULES = {
-    "gumshoe": "gumshoe.south_migrations",
+    ),
 }
 
 # Quick-start development settings - unsuitable for production
@@ -59,26 +62,42 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'south',
     'rest_framework',
     'gumshoe',
 )
 SITE_ID = 0
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = [
     'gumshoe.standalone.middleware.ExceptionLoggerMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-)
+]
+
 
 ROOT_URLCONF = 'gumshoe.standalone.urls'
 
 WSGI_APPLICATION = 'gumshoe.standalone.wsgi.application'
 
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases

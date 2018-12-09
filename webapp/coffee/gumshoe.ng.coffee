@@ -407,17 +407,17 @@ bootstrap = () ->
     )
 
     http.get( API.projects ).success( ( data ) ->
-      initial.constant "PROJECTS", data
+      initial.constant "PROJECTS", data.results
       semaphore.signal 'PROJECTS'
     )
 
     http.get( API.users ).success( ( data ) ->
-      initial.constant "USERS", data
+      initial.constant "USERS", data.results
       semaphore.signal 'USERS'
     )
 
     http.get( API.milestones ).success( ( data ) ->
-      initial.constant "MILESTONES", data
+      initial.constant "MILESTONES", data.results
       semaphore.signal "MILESTONES"
     )
   )

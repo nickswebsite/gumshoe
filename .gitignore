@@ -5,6 +5,8 @@ bugzilla-backup.sql
 
 # exclude automatically generated files.
 MANIFEST
+devenv.retry   # created by ansible-playbook
+
 *.sqlite3
 *.py[ocd]
 *.tar.gz
@@ -29,7 +31,8 @@ gumshoe.egg-info/
 
 # exclude environment and cache directories.
 env/
+.v/
+node_modules/
 .sass-cache/
 
 project/dependencies/
-

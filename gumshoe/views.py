@@ -1,18 +1,18 @@
 import datetime
 import time
 
+from django.contrib import auth
+from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.http.response import HttpResponseRedirect, HttpResponse, Http404
 from django.shortcuts import render
-from django.contrib.auth.models import User
-from django.contrib import auth
-from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
-from rest_framework.decorators import api_view, link, action
-from rest_framework.pagination import PaginationSerializer
+from rest_framework import generics, serializers, viewsets, routers
+from rest_framework.decorators import api_view, action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
@@ -22,17 +22,20 @@ from gumshoe.models import Project, IssueType, Issue, Priority, Component, Versi
 def now():
     return datetime.datetime.utcnow()
 
+
 def test_view(request):
     return render(request, "base.html")
+
 
 @login_required()
 def index(request):
     return HttpResponseRedirect(reverse('issues_list_form'))
 
+
 def login(request):
     context_dict = {}
     if request.method == "GET":
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             return HttpResponseRedirect("/")
 
     elif request.method == "POST":
@@ -48,18 +51,22 @@ def login(request):
 
     return render(request, "gumshoe/login.html", context_dict)
 
+
 @login_required
 def issue_form(request, issue_key=None):
     return render(request, "gumshoe/update-issue.html")
+
 
 @login_required
 def issue_list_view(request):
     return render(request, "gumshoe/issue-list.html")
 
+
 @login_required
 def logout(request):
     auth.logout(request)
     return HttpResponseRedirect("/login/")
+
 
 @login_required
 def tests_view(request):
@@ -72,13 +79,11 @@ def tests_view(request):
     ]
 
     ctx = {
-        "scripts": ["js/{0}".format(s) for s in app_scripts] + ["js/{0}".format(s) for s in test_scripts]
+        "scripts": [f"js/{s}" for s in app_scripts] + [f"js/{s}" for s in test_scripts]
     }
 
     return render(request, "tests/test-main.html", ctx)
 
-
-from rest_framework import generics, serializers, viewsets, routers, renderers, parsers
 
 @api_view(['GET'])
 def api_root(request, format=None):
@@ -89,35 +94,41 @@ def api_root(request, format=None):
         "projects": reverse('projects_list', request=request, format=format),
     })
 
+
 class VersionSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name="versions_detail", lookup_field="pk")
+
     class Meta:
         model = Version
         fields = ('id', 'url', 'name', 'description')
         lookup_field = "versions_detail"
 
+
 class ComponentSerializer (serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name="components_detail", lookup_field="pk")
+
     class Meta:
         model = Component
         fields = ('id', 'url', 'name', 'description')
+
 
 class PrioritySerializer(serializers.ModelSerializer):
     class Meta:
         model = Priority
         fields = ('id', 'name', 'short_name', 'weight')
 
+
 class ProjectSerializer (serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name="project-detail", lookup_field="pk")
     components = ComponentSerializer(many=True, source="component_set", read_only=True)
     versions = VersionSerializer(many=True, source="version_set", read_only=True)
-    priorities = serializers.SerializerMethodField("get_priorities")
-    issue_types = serializers.SerializerMethodField("get_issue_types")
-    statuses = serializers.SerializerMethodField("get_statuses")
-    resolutions = serializers.SerializerMethodField("get_resolutions")
+    priorities = serializers.SerializerMethodField()
+    issue_types = serializers.SerializerMethodField()
+    statuses = serializers.SerializerMethodField()
+    resolutions = serializers.SerializerMethodField()
 
     def get_priorities(self, obj):
-        return PrioritySerializer(list(Priority.objects.all())).data
+        return PrioritySerializer(list(Priority.objects.all()), many=True).data
 
     def get_issue_types(self, obj):
         return [issue_type.short_name for issue_type in IssueType.objects.all()]
@@ -132,7 +143,16 @@ class ProjectSerializer (serializers.HyperlinkedModelSerializer):
         model = Project
         fields = ('id', 'url', 'name', 'description', 'issue_key', 'components', 'versions', 'priorities', 'issue_types', 'resolutions', 'statuses')
 
-class PkListField(serializers.WritableField):
+
+class _WritableField(serializers.Field):
+    def to_internal_value(self, data):
+        return self.from_native(data)
+
+    def to_representation(self, value):
+        return self.to_native(value)
+
+
+class PkListField(_WritableField):
     def to_native(self, obj):
         if hasattr(obj, "all"):
             return [o.pk for o in obj.all()]
@@ -146,36 +166,41 @@ class PkListField(serializers.WritableField):
             msg = self.error_messages["invalid"]
             raise ValidationError(msg)
 
-class PkField(serializers.WritableField):
+
+class PkField(_WritableField):
     def to_native(self, obj):
         if obj is not None:
             return obj.pk
         return None
 
     def from_native(self, value):
-        if isinstance(value, long) or isinstance(value, int) or value is None:
+        if isinstance(value, int) or value is None:
             return value
         msg = self.error_messages["invalid"]
         raise ValidationError(msg)
 
-class ShortNameField(serializers.WritableField):
-    def to_native(self, obj):
-        return obj.short_name
 
-    def from_native(self, value):
-        if not isinstance(value, basestring):
+class ShortNameField(_WritableField):
+    def to_representation(self, value):
+        return value.short_name
+
+    def to_internal_value(self, data):
+        if not isinstance(data, str):
             raise ValidationError(self.error_messages["invalid"])
 
         try:
-            return self.model.objects.get(short_name=value)
-        except IssueType.DoesNotExist:
+            return self.model.objects.get(short_name=data)
+        except self.model.DoesNotExist:
             raise ValidationError(self.error_messages["invalid"])
+
 
 class IssueTypeField(ShortNameField):
     model = IssueType
 
+
 class PriorityField(ShortNameField):
     model = Priority
+
 
 class UnixtimeField(serializers.DateTimeField):
     def __init__(self, *args, **kwds):
@@ -193,16 +218,19 @@ class UnixtimeField(serializers.DateTimeField):
     def from_native(self, value):
         return datetime.datetime.fromtimestamp(int(value) / self.scaling)
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'first_name', 'last_name', 'email')
         read_only_fields = ('id', 'username', 'first_name', 'last_name')
 
+
 class MilestoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Milestone
         fields = ("id", "name", "description")
+
 
 class CommentSerializer(serializers.Serializer):
     id = serializers.IntegerField(source="pk", required=False)
@@ -211,18 +239,25 @@ class CommentSerializer(serializers.Serializer):
     updated = UnixtimeField(read_only=True, millis=True)
     text = serializers.CharField(required=True)
 
-    def restore_object(self, attrs, instance=None):
+    def _restore_object(self, attrs, instance=None):
         instance = instance or Comment()
         instance.text = attrs.get("text")
         instance.pk = attrs.get("pk")
         return instance
 
+    def create(self, validated_data):
+        return self._restore_object(validated_data)
+
+    def update(self, instance, validated_data):
+        return self._restore_object(validated_data, instance)
+
+
 class IssueSerializer(serializers.Serializer):
     id = serializers.IntegerField(source="pk", required=False)
     url = serializers.HyperlinkedIdentityField(view_name="issue-detail", lookup_field="issue_key")
     summary = serializers.CharField()
-    description = serializers.CharField(required=False)
-    steps_to_reproduce = serializers.CharField(required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    steps_to_reproduce = serializers.CharField(required=False, allow_blank=True)
     issue_key = serializers.CharField(read_only=True)
     components = PkListField(required=False)
     affects_versions = PkListField(required=False)
@@ -232,16 +267,16 @@ class IssueSerializer(serializers.Serializer):
     resolution = serializers.ChoiceField(choices=Issue.RESOLUTION_CHOICES)
     issue_type = IssueTypeField()
     priority = PriorityField()
-    assignee_id = PkField(required=False, write_only=True)
-    assignee = UserSerializer(required=False)
+    assignee_id = PkField(required=False, write_only=True, allow_null=True)
+    assignee = UserSerializer(required=False, allow_null=True)
     reporter = UserSerializer(read_only=True)
     reported = UnixtimeField(millis=True, read_only=True)
     last_updated = UnixtimeField(millis=True, read_only=True)
 
-    milestone_id = PkField(required=False, write_only=True)
+    milestone_id = PkField(required=False, write_only=True, allow_null=True)
     milestone = MilestoneSerializer(required=False, read_only=True)
 
-    def restore_object(self, attrs, instance=None):
+    def _restore_object(self, attrs, instance=None):
         issue = instance or Issue()
         issue.summary = attrs.get("summary") or issue.summary
         issue.description = attrs.get("description") or issue.description
@@ -268,12 +303,37 @@ class IssueSerializer(serializers.Serializer):
 
         return issue
 
-class IssuePaginatinationSerializer(PaginationSerializer):
-    class Meta:
-        object_serializer_class = IssueSerializer
+    def create(self, validated_data):
+        return self._restore_object(validated_data)
+
+    def update(self, instance, validated_data):
+        return self._restore_object(validated_data, instance)
+
+
+class ModelPaginationSerializer(object):
+    serializer_class = None
+
+    def __init__(self, request, queryset):
+        self.queryset = queryset
+        self.request = request
+
+    def get_paginated_response(self):
+        paginator = PageNumberPagination()
+
+        page = paginator.paginate_queryset(self.queryset, self.request)
+
+        model_serializer = self.serializer_class(page, many=True, context={"request": self.request})
+
+        return paginator.get_paginated_response(model_serializer.data)
+
+
+class IssuePaginationSerializer(ModelPaginationSerializer):
+    serializer_class = IssueSerializer
+
 
 def get_pk_list(pk_str):
     return [int(pk) for pk in pk_str.split(",")]
+
 
 class IssueViewSet(viewsets.ViewSet):
     queryset = Issue.objects.all()
@@ -345,34 +405,27 @@ class IssueViewSet(viewsets.ViewSet):
             order_by_fields = order_by_param.split(",")
             qs = qs.order_by(*order_by_fields)
 
-        paginator = Paginator(qs, page_size)
-
-        try:
-            res = paginator.page(page)
-        except PageNotAnInteger:
-            res = paginator.page(1)
-        except EmptyPage:
-            res = paginator.page(paginator.num_pages)
-
-        serializer = IssuePaginatinationSerializer(res, context={"request": request})
-        return Response(serializer.data)
+        serializer = IssuePaginationSerializer(request, qs)
+        return serializer.get_paginated_response()
 
     def create(self, request):
-        serializer = self.serializer_class(data=request.DATA, context={"request": request})
+        serializer = self.serializer_class(data=request.data, context={"request": request})
         if serializer.is_valid():
-            issue = serializer.object
+            issue = serializer.create(serializer.validated_data)
             issue.reporter = request.user
             issue.assignee = issue.assignee or issue.reporter
             issue.save()
 
             if hasattr(issue, "components_detached"):
-                issue.components = issue.components_detached
+                issue.components.set(issue.components_detached)
             if hasattr(issue, "affects_versions_detached"):
-                issue.affects_versions = issue.affects_versions_detached
+                issue.affects_versions.set(issue.affects_versions_detached)
             if hasattr(issue, "fix_versions_detached"):
-                issue.fix_versions = issue.fix_versions_detached
+                issue.fix_versions.set(issue.fix_versions_detached)
 
-            return Response(serializer.data, status=201)
+            response_serializer = self.serializer_class(issue, context={"request": request})
+            return Response(response_serializer.data, status=201)
+
         return Response(serializer.errors, status=400)
 
     def retrieve(self, request, issue_key=None):
@@ -384,7 +437,7 @@ class IssueViewSet(viewsets.ViewSet):
         serializer = self.serializer_class(issue, context={"request": request})
         return Response(serializer.data, status=200)
 
-    @action(methods=["get", "put", "post"])
+    @action(methods=["get", "put", "post"], detail=True)
     def comments(self, request, issue_key=None):
         try:
             issue = Issue.objects.get(issue_key=issue_key)
@@ -395,19 +448,20 @@ class IssueViewSet(viewsets.ViewSet):
             serializer = CommentSerializer(issue.comments.all(), many=True)
             return Response(serializer.data, status=200)
         elif request.method == "POST":
-            serializer = CommentSerializer(data=request.DATA, context={"request": request})
+            serializer = CommentSerializer(data=request.data, context={"request": request})
             if serializer.is_valid():
-                comment = serializer.object
+                comment = serializer.create(serializer.validated_data)
                 comment.content = issue
                 comment.author = request.user
                 comment.save()
                 return Response(serializer.data, status=200)
             return Response(serializer.errors, status=400)
         elif request.method == "PUT":
-            serializer = CommentSerializer(data=request.DATA, context={"request": request})
+            serializer = CommentSerializer(data=request.data, context={"request": request})
             if serializer.is_valid():
-                comment_detached = serializer.object
-                comment = Comment.objects.get(pk=comment_detached.pk)
+                comment = Comment.objects.get(pk=serializer.validated_data["pk"])
+
+                comment_detached = serializer.update(comment, serializer.validated_data)
                 comment.text = comment_detached.text
                 comment.save()
                 return Response(CommentSerializer(comment, context={"request": request}).data, status=200)
@@ -419,9 +473,9 @@ class IssueViewSet(viewsets.ViewSet):
         except Issue.DoesNotExist:
             raise Http404
 
-        serializer = self.serializer_class(data=request.DATA, context={"request": request})
+        serializer = self.serializer_class(data=request.data, context={"request": request})
         if serializer.is_valid():
-            issue_detached = serializer.object
+            issue_detached = serializer.update(issue, serializer.validated_data)
             issue_detached.issue_key = issue_key
 
             issue.issue_type = issue_detached.issue_type
@@ -434,23 +488,26 @@ class IssueViewSet(viewsets.ViewSet):
             issue.milestone = issue_detached.milestone
             issue.assignee = issue_detached.assignee or request.user
             if hasattr(issue_detached, "components_detached"):
-                issue.components = issue_detached.components_detached
+                issue.components.set(issue_detached.components_detached)
             if hasattr(issue_detached, "affects_versions_detached"):
-                issue.affects_versions = issue_detached.affects_versions_detached
+                issue.affects_versions.set(issue_detached.affects_versions_detached)
             if hasattr(issue_detached, "fix_versions_detached"):
-                issue.fix_versions = issue_detached.fix_versions_detached
+                issue.fix_versions.set(issue_detached.fix_versions_detached)
 
             issue.save()
             return Response(self.serializer_class(issue, context={"request": request}).data, status=200)
         return Response(serializer.errors, status=400)
 
+
 class VersionDetailView (generics.RetrieveAPIView):
     queryset = Version.objects.all()
     serializer_class = VersionSerializer
 
+
 class ComponentDetailView (generics.RetrieveUpdateAPIView):
     queryset = Component.objects.all()
     serializer_class = ComponentSerializer
+
 
 class ProjectViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -460,15 +517,18 @@ class ProjectViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProjectSerializer
     base_name = "projects"
 
+
 class UsersViewSet (viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     base_name = "users"
 
+
 class MilestoneViewSet (viewsets.ReadOnlyModelViewSet):
     queryset = Milestone.objects.all()
     serializer_class = MilestoneSerializer
     base_name = "milestones"
+
 
 router = routers.DefaultRouter()
 router.register(r'projects', ProjectViewSet)
@@ -476,12 +536,14 @@ router.register(r'issues', IssueViewSet)
 router.register(r'users', UsersViewSet)
 router.register(r'milestones', MilestoneViewSet)
 
+
 @login_required()
 def settings_view(request):
     if request.method == "PUT":
-        request.session["settings"] = request.body
+        request.session["settings"] = request.body.decode()
     res = request.session.get("settings", '{"unsaved": true}')
     return HttpResponse(res, content_type="application/json", status=200)
+
 
 @api_view(["GET"])
 def pages_view(request):

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.generic import GenericTabularInline
+from django.contrib.contenttypes.admin import GenericTabularInline
 
 from django import forms
 from gumshoe.models import Component, Issue, IssueType, Milestone, Priority, Project, Version, Comment
@@ -9,13 +9,16 @@ from gumshoe.models import Component, Issue, IssueType, Milestone, Priority, Pro
 class IssueAdminForm (forms.ModelForm):
     class Meta:
         model = Issue
+        exclude = ()
 
     reporter = forms.ModelChoiceField(queryset=User.objects.all(), empty_label="Me", required=False)
     assignee = forms.ModelChoiceField(queryset=User.objects.all(), empty_label="Auto Assign", required=False)
 
+
 class CommentInline(GenericTabularInline):
     model = Comment
     extra = 0
+
 
 class IssueModelAdmin (admin.ModelAdmin):
     readonly_fields = ('issue_key',)
@@ -39,16 +42,20 @@ class IssueModelAdmin (admin.ModelAdmin):
         obj.assignee = obj.reporter or request.user
         obj.save()
 
+
 class ComponentInline (admin.StackedInline):
     model = Component
     extra = 0
+
 
 class VersionInline (admin.StackedInline):
     model = Version
     extra = 0
 
+
 class ProjectModelAdmin(admin.ModelAdmin):
     inlines = [VersionInline, ComponentInline]
+
 
 # Register your models here.
 admin.site.register(Issue, IssueModelAdmin)

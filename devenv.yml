@@ -1,0 +1,33 @@
+#!env ansible-playbook
+
+- hosts: localhost
+  connection: local
+  vars:
+    envroot: "{{ playbook_dir }}/.v"
+
+    nodejs_version: v8.11.3
+    nodejs_archive: node-{{ nodejs_version }}-linux-x64.tar.xz
+    nodejs_archive_unpacked: node-{{ nodejs_version }}-linux-x64
+    nodejs_url: http://nodejs.org/dist/{{ nodejs_version }}/{{ nodejs_archive }}
+
+    nodejs_build_dir: /tmp/nodebuild
+
+  tasks:
+#  - pip: requirements={{ playbook_dir }}/project/requirements-cpython.txt
+#         virtualenv={{ envroot }}
+#         virtualenv_python=python3.7
+
+  - file: path={{ playbook_dir }}/{{ item }} state=absent
+    with_items:
+    - node_modules
+    - dist
+#  - file: path={{ envroot }} state=directory
+  - file: path={{ nodejs_build_dir }} state=directory
+  - get_url: url={{ nodejs_url }} dest={{ nodejs_build_dir }}
+  - unarchive: src={{ nodejs_build_dir }}/{{ nodejs_archive }} dest={{ envroot }}
+  - file: path={{ envroot }}/nodejs src={{ envroot }}/{{ nodejs_archive_unpacked }} state=link
+  - file: path={{ envroot }}/bin/{{ item }} src={{ envroot }}/{{ nodejs_archive_unpacked }}/bin/{{ item }} state=link
+    with_items:
+    - node
+    - npm
+    - npx

@@ -12,26 +12,32 @@ from gumshoe.models import Project, Priority, Component, Version, Issue, IssueTy
 
 
 def random_string(max_length=255):
-    return "".join([random.choice(string.ascii_letters + string.digits + "_-!@#$%^&*()+=\t ,.<>/?[]{}\\|'\";:`~") for _ in xrange(max_length)])
+    return "".join([random.choice(string.ascii_letters + string.digits + "_-!@#$%^&*()+=\t ,.<>/?[]{}\\|'\";:`~") for _ in range(max_length)])
+
 
 def random_priority():
     return random.choice(list(Priority.objects.all())).short_name
 
+
 def random_status():
     return random.choice(Issue.STATUS_CHOICES)[0]
+
 
 def random_resolution():
     return random.choice(Issue.RESOLUTION_CHOICES)[0]
 
+
 def random_issue_type():
     return random.choice(list(IssueType.objects.all())).short_name
+
 
 class IssueTestCaseBase(object):
     def setUpProject(self):
         self.user = User.objects.create_user("testuser", "", "password")
         self.another_user = User.objects.create_user("another_user", "", "password")
 
-        self.client.login(username="testuser", password="password")
+        login_result = self.client.login(username="testuser", password="password")
+        assert login_result
 
         self.project = Project(name="Test Project", issue_key="TESTPROJECT")
         self.project.save()
@@ -72,9 +78,9 @@ class IssueTestCaseBase(object):
         issue.assignee = kwds.get("assignee", self.user)
         issue.save()
 
-        issue.components = kwds.get("components", [self.component_two])
-        issue.affects_versions = kwds.get("affects_versions", [self.version_one])
-        issue.fix_versions = kwds.get("fix_versions", [self.version_one])
+        issue.components.set(kwds.get("components", [self.component_two]))
+        issue.affects_versions.set(kwds.get("affects_versions", [self.version_one]))
+        issue.fix_versions.set(kwds.get("fix_versions", [self.version_one]))
 
         return issue
 
@@ -86,6 +92,7 @@ class IssueTestCaseBase(object):
         comment.save()
 
         return comment
+
 
 class IssuesApiTests (IssueTestCaseBase, TestCaseBase):
     fixtures = ["initial_data.json"]
@@ -118,7 +125,7 @@ class IssuesApiTests (IssueTestCaseBase, TestCaseBase):
             pl["resolution"] = Issue.RESOLUTION_CHOICES[0][0]
 
         res = self.client.post(self.NEW_ISSUES_ENDPOINT, json.dumps(pl), content_type="application/json")
-        self.assertEqual(201, res.status_code, res.data)
+        self.assertEqual(201, res.status_code, res.content)
         res = json.loads(res.content)
 
         self.assertEqual(1, Issue.objects.count())
@@ -146,9 +153,9 @@ class IssuesApiTests (IssueTestCaseBase, TestCaseBase):
     def test_get_issue(self):
         issue = self.generate_issue()
 
-        res = self.client.get(self.EXISTING_ISSUE_ENDPOINT.format(issue.issue_key))
-        self.assertEqual(200, res.status_code, res.content)
-        res = json.loads(res.content)
+        response = self.client.get(self.EXISTING_ISSUE_ENDPOINT.format(issue.issue_key))
+        self.assertEqual(200, response.status_code, response.content)
+        res = json.loads(response.content)
 
         self.assertEqual(issue.project.pk, res["project"])
         self.assertEqual(issue.summary, res["summary"])
@@ -180,9 +187,9 @@ class IssuesApiTests (IssueTestCaseBase, TestCaseBase):
             "milestoneId": None,
         }
 
-        res = self.client.put(self.EXISTING_ISSUE_ENDPOINT.format(issue.issue_key), json.dumps(pl), content_type="application/json")
-        self.assertEqual(200, res.status_code, res.content)
-        res = json.loads(res.content)
+        response = self.client.put(self.EXISTING_ISSUE_ENDPOINT.format(issue.issue_key), json.dumps(pl), content_type="application/json")
+        self.assertEqual(200, response.status_code, response.content)
+        res = json.loads(response.content)
 
         self.assertEqual(1, Issue.objects.count())
 
@@ -204,6 +211,7 @@ class IssuesApiTests (IssueTestCaseBase, TestCaseBase):
         self.assertSetEqual(set(pl["affectsVersions"]), set(res["affectsVersions"]))
         self.assertSetEqual(set(pl["fixVersions"]), {v.pk for v in issue.fix_versions.all()})
         self.assertSetEqual(set(pl["fixVersions"]), set(res["fixVersions"]))
+
 
 class CommentsApiTests (IssueTestCaseBase, TestCaseBase):
     fixtures = ["initial_data.json"]
@@ -264,8 +272,10 @@ class CommentsApiTests (IssueTestCaseBase, TestCaseBase):
         comment = Comment.objects.get(pk=comment1.pk)
         self.assertEqual(pl["text"], comment.text)
 
+
 class IssueFilterTests(IssueTestCaseBase, TestCaseBase):
     fixtures = ["initial_data.json"]
+
     def setUp(self):
         self.setUpProject()
         self.setUpSecondProject()

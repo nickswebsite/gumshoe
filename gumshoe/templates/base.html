@@ -3,15 +3,7 @@
 <html>
 <head>
     {% block styles %}
-    <link href="{% static 'css/screen.css' %}" media="screen, projection" rel="stylesheet" type="text/css" />
-    <link href="{% static 'css/print.css' %}" media="print" rel="stylesheet" type="text/css" />
-    <!--[if IE]>
-      <link href="{% static 'css/ie.css' %}" media="screen, projection" rel="stylesheet" type="text/css" />
-    <![endif]-->
-    <link href="{% static 'css/login.css' %}" media="screen, projection" rel="stylesheet" type="text/css"/>
-    <link href="{% static 'css/update-issue.css' %}" media="screen, projection" rel="stylesheet" type="text/css"/>
-    <link href="{% static 'css/issue-list.css' %}" media="screen, projection" rel="stylesheet" type="text/css"/>
-    <link href="{% static 'css/navbar.css' %}" media="screen, projection" rel="stylesheet" type="text/css"/>
+    <link href="{% static 'css/styles.css' %}" media="screen, projection" rel="stylesheet" type="text/css"/>
     {% endblock %}
 
     {% block scripts %}
@@ -56,7 +48,6 @@
     </div>
 
     <div class="section">Section div</div>
-
 
     {% endblock %}
 </body>

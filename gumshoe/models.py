@@ -1,18 +1,19 @@
 import datetime
 
-from django.utils.timezone import utc
-from django.db import models
 from django.contrib.auth.models import User
-from django.db.models.signals import m2m_changed
-from django.contrib.contenttypes.generic import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.db import models
+from django.db.models.signals import m2m_changed
+from django.utils.timezone import utc
+
 
 class Comment(models.Model):
-    content_type = models.ForeignKey(ContentType)
+    content_type = models.ForeignKey(ContentType, on_delete=models.PROTECT)
     object_id = models.PositiveIntegerField()
     content = GenericForeignKey('content_type', 'object_id')
 
-    author = models.ForeignKey(User)
+    author = models.ForeignKey(User, on_delete=models.PROTECT)
     created = models.DateTimeField(null=False)
     updated = models.DateTimeField(null=False)
     text = models.TextField()
@@ -39,8 +40,9 @@ class Project(models.Model):
     def __str__(self):
         return self.name
 
+
 class Component(models.Model):
-    project = models.ForeignKey(Project)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=False)
 
@@ -50,8 +52,9 @@ class Component(models.Model):
     def __str__(self):
         return self.name + " (" + str(self.project) + ")"
 
+
 class Version(models.Model):
-    project = models.ForeignKey(Project)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=False)
 
@@ -61,12 +64,14 @@ class Version(models.Model):
     def __str__(self):
         return "{0} : {1}".format(self.project, self.name)
 
+
 class Milestone(models.Model):
     name = models.CharField(max_length=128)
     description = models.TextField(blank=True, null=False)
 
     def __str__(self):
         return self.name
+
 
 class Priority(models.Model):
     weight = models.IntegerField()
@@ -79,6 +84,7 @@ class Priority(models.Model):
     def __str__(self):
         return self.name
 
+
 class IssueType(models.Model):
     name = models.CharField(max_length=32)
     description = models.TextField()
@@ -87,6 +93,7 @@ class IssueType(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class Issue(models.Model):
     RESOLUTION_CHOICES = (
@@ -106,7 +113,7 @@ class Issue(models.Model):
     issue_type = models.ForeignKey(IssueType, on_delete=models.PROTECT)
     priority = models.ForeignKey(Priority, on_delete=models.PROTECT)
 
-    project = models.ForeignKey(Project, on_delete=models.PROTECT)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
 
     description = models.TextField(blank=True)
     steps_to_reproduce = models.TextField(blank=True)
@@ -148,8 +155,10 @@ class Issue(models.Model):
 
         return super(Issue, self).save(*args, **kwds)
 
+
 def issue_update_timestamp(*args, **kwds):
     if kwds.get("action") in {"post_add", "post_remove", "post_clear"}:
         kwds["instance"].save()
+
 
 m2m_changed.connect(issue_update_timestamp, dispatch_uid="gumshoe.models.issue_update_timestamp")

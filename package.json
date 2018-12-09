@@ -1,0 +1,20 @@
+{
+  "name": "gumshoe-ui",
+  "version": "0.1.0",
+  "private": false,
+  "dependencies": {},
+  "devDependencies": {
+    "angular": "1.2.32",
+    "angular-ui-bootstrap": "0.12.1",
+    "coffeescript": "1.12.7",
+    "node-sass": "4.9.2",
+    "urijs": "1.16.1"
+  },
+  "scripts": {
+    "cake": "cake build",
+    "coffee": "coffee -o gumshoe/static/js/ -c webapp/coffee/*.coffee",
+    "dependencies": "cp node_modules/angular/angular.js node_modules/angular-ui-bootstrap/ui-bootstrap.js node_modules/ui-bootstrap-tpls.js node_modules/urijs/src/URI.js gumshoe/static/js/",
+    "styles": "node-sass webapp/sass/styles.scss gumshoe/static/css/styles.css",
+    "watch-styles": "node-sass --watch -r webapp/sass/styles.scss gumshoe/static/css/styles.css"
+  }
+}

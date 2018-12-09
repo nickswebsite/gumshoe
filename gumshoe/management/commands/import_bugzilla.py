@@ -1,15 +1,18 @@
 import re
-import os
+from optparse import make_option
+import sys
 
 from django.core.management.base import BaseCommand, CommandError
-from optparse import make_option
 
-from django.db import connections
 from django.contrib.auth.models import User
-from django.db import models
+from django.db import connections, models
+
 from gumshoe.models import Project, Version, Component, Priority, IssueType, Issue, Comment
 
 TEMPORARY_TABLE_NAME = "bugzillaimport"
+camel_case_split_pattern = r'((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))'
+
+
 class BugzillaIssueMap(models.Model):
     bugzilla_id = models.IntegerField(primary_key=True)
     issue = models.ForeignKey(Issue)
@@ -18,7 +21,7 @@ class BugzillaIssueMap(models.Model):
         managed = False
         db_table = TEMPORARY_TABLE_NAME
 
-camel_case_split_pattern = r'((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))'
+
 def project_name_to_keys(name):
     """
     Returns a list of possible issue keys based on the name.  The first key
@@ -51,10 +54,12 @@ def project_name_to_keys(name):
 
     return suggestions
 
+
 def email_to_username(email):
     username = email.replace("@", "-")
 
     return [username]
+
 
 def import_projects(project_list, key_map=None):
     key_map = key_map or {}
@@ -74,20 +79,22 @@ def import_projects(project_list, key_map=None):
         issue_keys_taken.add(issue_key)
         project.save()
 
-import sys
 
 def default_log_dot_fn():
     sys.stdout.write(".")
+
 
 def rowdict(row, cur):
     if hasattr(cur, "description"):
         return dict(zip([d[0] for d in cur.description], row))
     return dict(zip(cur, row))
 
+
 def rowdict_cursor(cur):
     fields = [d[0] for d in cur.description]
     for row in cur:
         yield rowdict(row, fields)
+
 
 class DotLogger(object):
     def __init__(self, cnt=1, fn=default_log_dot_fn):
@@ -100,6 +107,7 @@ class DotLogger(object):
             self.fn()
             self.cur = 0
         self.cur += 1
+
 
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (

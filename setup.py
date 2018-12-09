@@ -1,18 +1,23 @@
 from setuptools import setup, find_packages
 import sys
 
+
 def version_str(version):
     return ".".join([str(part) for part in version])
+
 
 with open("CLASSIFIERS") as classifiers_file:
     CLASSIFIERS = [classifier.strip() for classifier in classifiers_file if classifier.strip()]
 
+
 with open("README.md") as readme_file:
     README = readme_file.read()
+
 
 with open("VERSION") as version_file:
     version = version_file.read().strip()
     VERSION = [int(part) for part in version.split(".")]
+
 
 try:
     version_arg_index = sys.argv.index("--increment-version")
@@ -23,6 +28,7 @@ else:
     VERSION[-1] += 1
     with open("VERSION", "w") as version_file:
         version_file.write(version_str(VERSION))
+
 
 setup(
     name="gumshoe",
@@ -42,9 +48,8 @@ setup(
     },
     install_requires=[
         'pytz',
-        'Django==1.6',
-        'south',
-        'djangorestframework',
+        'Django==2.1.4',
+        'djangorestframework==3.9.0',
     ],
     classifiers=CLASSIFIERS
 )
