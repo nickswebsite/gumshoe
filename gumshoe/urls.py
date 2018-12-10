@@ -10,6 +10,8 @@ rest_urlpatterns = [
     re_path(r'^settings/$', gumshoe.views.settings_view, name='settings'),
     re_path(r'^components/(?P<pk>[0-9]+)$', gumshoe.views.ComponentDetailView.as_view(), name="components_detail"),
     re_path(r'^versions/(?P<pk>[0-9]+)$', gumshoe.views.VersionDetailView.as_view(), name='versions_detail'),
+    re_path(r'^issues/(?P<issue_key>[-A-Za-z0-9_]+)/comments/$', gumshoe.views.CommentCollectionView.as_view(), name="comment_collection"),
+    re_path(r'^comments/(?P<pk>[0-9]+)$', gumshoe.views.CommentRetrieveUpdateDestroyView.as_view(), name="comment-detail"),
 ]
 
 page_urlpatterns = [

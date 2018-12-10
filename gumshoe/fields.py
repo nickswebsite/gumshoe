@@ -7,22 +7,14 @@ from rest_framework import serializers
 from gumshoe.models import IssueType, Priority
 
 
-class _WritableField(serializers.Field):
-    def to_internal_value(self, data):
-        return self.from_native(data)
-
-    def to_representation(self, value):
-        return self.to_native(value)
-
-
-class PkListField(_WritableField):
-    def to_native(self, obj):
+class PkListField(serializers.Field):
+    def to_representation(self, obj):
         if hasattr(obj, "all"):
             return [o.pk for o in obj.all()]
         else:
             return [o.pk for o in obj]
 
-    def from_native(self, value):
+    def to_internal_value(self, value):
         if isinstance(value, list):
             return value
         else:
@@ -30,20 +22,20 @@ class PkListField(_WritableField):
             raise ValidationError(msg)
 
 
-class PkField(_WritableField):
-    def to_native(self, obj):
+class PkField(serializers.Field):
+    def to_representation(self, obj):
         if obj is not None:
             return obj.pk
         return None
 
-    def from_native(self, value):
+    def to_internal_value(self, value):
         if isinstance(value, int) or value is None:
             return value
         msg = self.error_messages["invalid"]
         raise ValidationError(msg)
 
 
-class ShortNameField(_WritableField):
+class ShortNameField(serializers.Field):
     def to_representation(self, value):
         return value.short_name
 
@@ -75,8 +67,8 @@ class UnixtimeField(serializers.DateTimeField):
 
         super(UnixtimeField, self).__init__(*args, **kwds)
 
-    def to_native(self, value):
+    def to_representation(self, value):
         return int(time.mktime(value.timetuple())) * self.scaling
 
-    def from_native(self, value):
+    def to_internal_value(self, value):
         return datetime.datetime.fromtimestamp(int(value) / self.scaling)

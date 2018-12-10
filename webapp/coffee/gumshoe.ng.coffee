@@ -184,13 +184,11 @@ class UpdateIssueCtrl
     @scope.commentText = ""
 
     @issueEndpoint = "#{API.issues}"
-    @issueCommentsEndpoint = null
 
     if !@scope.addMode
       parts = url.path.split("/")
       issueKey = parts.pop()
       @issueEndpoint = "#{API.issues}#{issueKey}/"
-      @issueCommentsEndpoint = "#{@issueEndpoint}comments/"
 
       @http.get( @issueEndpoint ).success ( ( data, status, headers, config ) =>
         @scope.issue = Issue.fromDTO( data )
@@ -201,14 +199,10 @@ class UpdateIssueCtrl
         @scope.priorities = @scope.project.priorities
         @scope.resolutions = @scope.project.resolutions
 
-        if @scope.comments
+        @http.get( @scope.issue.commentsUrl ).success( ( commentData, status, headers, config ) =>
+          @scope.comments = ( Comment.fromDTO( c ) for c in commentData.results )
           @scope.issue.comments = @scope.comments
-      )
-
-      @http.get( @issueCommentsEndpoint ).success( ( data, status, headers, config ) =>
-        @scope.comments = ( Comment.fromDTO( c ) for c in data )
-        if @scope.issue
-          @scope.issue.comments = @scope.comments
+        )
       )
 
     else
@@ -243,7 +237,7 @@ class UpdateIssueCtrl
   addComment: ( text ) ->
     pl =
       text: text
-    @http.post( @issueCommentsEndpoint, pl ).success ( ( data, status, headers, config ) =>
+    @http.post( @scope.issue.commentsUrl, pl ).success ( ( data, status, headers, config ) =>
       @scope.comments.push Comment.fromDTO( data )
     )
 
@@ -257,7 +251,7 @@ class UpdateIssueCtrl
     stepsToReproduce: issue.stepsToReproduce
 
     status: issue.status.id
-    resolution: issue.status.resolution.id
+    resolution: issue.resolution.id
 
     assigneeId: if issue.assignee then issue.assignee.id else null
     milestoneId: if issue.milestone then issue.milestone.id else null

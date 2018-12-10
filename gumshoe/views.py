@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from rest_framework import generics, viewsets, routers
 from rest_framework.decorators import api_view, action
+from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -224,7 +225,8 @@ class IssueViewSet(viewsets.ViewSet):
     def create(self, request):
         serializer = self.serializer_class(data=request.data, context={"request": request})
         if serializer.is_valid():
-            issue = serializer.create(serializer.validated_data)
+            issue = serializer.save()
+
             issue.reporter = request.user
             issue.assignee = issue.assignee or issue.reporter
             issue.save()
@@ -250,56 +252,16 @@ class IssueViewSet(viewsets.ViewSet):
         serializer = self.serializer_class(issue, context={"request": request})
         return Response(serializer.data, status=200)
 
-    @action(methods=["get", "put", "post"], detail=True)
-    def comments(self, request, issue_key=None):
-        try:
-            issue = Issue.objects.get(issue_key=issue_key)
-        except Issue.DoesNotExist:
-            raise Http404
-
-        if request.method == "GET":
-            serializer = CommentSerializer(issue.comments.all(), many=True)
-            return Response(serializer.data, status=200)
-        elif request.method == "POST":
-            serializer = CommentSerializer(data=request.data, context={"request": request})
-            if serializer.is_valid():
-                comment = serializer.create(serializer.validated_data)
-                comment.content = issue
-                comment.author = request.user
-                comment.save()
-                return Response(serializer.data, status=200)
-            return Response(serializer.errors, status=400)
-        elif request.method == "PUT":
-            serializer = CommentSerializer(data=request.data, context={"request": request})
-            if serializer.is_valid():
-                comment = Comment.objects.get(pk=serializer.validated_data["pk"])
-
-                comment_detached = serializer.update(comment, serializer.validated_data)
-                comment.text = comment_detached.text
-                comment.save()
-                return Response(CommentSerializer(comment, context={"request": request}).data, status=200)
-            return Response(serializer.errors, status=400)
-
     def update(self, request, issue_key=None):
         try:
             issue = Issue.objects.get(issue_key=issue_key)
         except Issue.DoesNotExist:
             raise Http404
 
-        serializer = self.serializer_class(data=request.data, context={"request": request})
+        serializer = self.serializer_class(issue, data=request.data, context={"request": request})
         if serializer.is_valid():
-            issue_detached = serializer.update(issue, serializer.validated_data)
-            issue_detached.issue_key = issue_key
+            issue_detached = serializer.save()
 
-            issue.issue_type = issue_detached.issue_type
-            issue.summary = issue_detached.summary
-            issue.description = issue_detached.description
-            issue.steps_to_reproduce = issue_detached.steps_to_reproduce
-            issue.priority = issue_detached.priority
-            issue.status = issue_detached.status
-            issue.resolution = issue_detached.resolution
-            issue.milestone = issue_detached.milestone
-            issue.assignee = issue_detached.assignee or request.user
             if hasattr(issue_detached, "components_detached"):
                 issue.components.set(issue_detached.components_detached)
             if hasattr(issue_detached, "affects_versions_detached"):
@@ -312,32 +274,66 @@ class IssueViewSet(viewsets.ViewSet):
         return Response(serializer.errors, status=400)
 
 
-class VersionDetailView (generics.RetrieveAPIView):
+class CommentCollectionView(generics.ListCreateAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        issue_key = None
+        if "issue_key" in self.kwargs:
+            issue_key = self.kwargs["issue_key"]
+
+        if issue_key:
+            issue = self.get_issue(issue_key)
+            return issue.comments.all()
+
+        return Comment.objects.none()
+
+    def perform_create(self, serializer):
+        # The issue is required for creating the comment and is NOT available
+        # to the serializer, so we mimic what the serializer would do here.
+        issue = self.get_issue(self.kwargs["issue_key"])
+
+        comment = Comment()
+        comment.text = serializer.validated_data["text"]
+        comment.content = issue
+        comment.author = self.request.user
+        comment.save()
+
+        serializer.instance = comment
+
+    def get_issue(self, issue_key):
+        return get_object_or_404(Issue, issue_key=issue_key)
+
+
+class CommentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+
+
+class VersionDetailView(generics.RetrieveAPIView):
     queryset = Version.objects.all()
     serializer_class = VersionSerializer
 
 
-class ComponentDetailView (generics.RetrieveUpdateAPIView):
+class ComponentDetailView(generics.RetrieveUpdateAPIView):
     queryset = Component.objects.all()
     serializer_class = ComponentSerializer
 
 
 class ProjectViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Doc string for ProjectViewSet
-    """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     base_name = "projects"
 
 
-class UsersViewSet (viewsets.ReadOnlyModelViewSet):
+class UsersViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     base_name = "users"
 
 
-class MilestoneViewSet (viewsets.ReadOnlyModelViewSet):
+class MilestoneViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Milestone.objects.all()
     serializer_class = MilestoneSerializer
     base_name = "milestones"
@@ -348,3 +344,4 @@ router.register(r'projects', ProjectViewSet)
 router.register(r'issues', IssueViewSet)
 router.register(r'users', UsersViewSet)
 router.register(r'milestones', MilestoneViewSet)
+# router.register(r'comments', CommentsViewSets)

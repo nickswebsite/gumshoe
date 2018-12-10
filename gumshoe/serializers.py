@@ -68,23 +68,24 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.Serializer):
-    id = serializers.IntegerField(source="pk", required=False)
+    url = serializers.HyperlinkedIdentityField(view_name="comment-detail", lookup_field="pk")
     author = UserSerializer(read_only=True)
     created = UnixtimeField(read_only=True, millis=True)
     updated = UnixtimeField(read_only=True, millis=True)
     text = serializers.CharField(required=True)
 
-    def _restore_object(self, attrs, instance=None):
-        instance = instance or Comment()
-        instance.text = attrs.get("text")
-        instance.pk = attrs.get("pk")
-        return instance
+    def _restore_comment(self, attrs, comment=None):
+        comment.text = attrs.get("text")
+
+        comment.save()
+
+        return comment
 
     def create(self, validated_data):
-        return self._restore_object(validated_data)
+        return self._restore_comment(validated_data, Comment())
 
     def update(self, instance, validated_data):
-        return self._restore_object(validated_data, instance)
+        return self._restore_comment(validated_data, instance)
 
 
 class IssueSerializer(serializers.Serializer):
@@ -111,8 +112,9 @@ class IssueSerializer(serializers.Serializer):
     milestone_id = PkField(required=False, write_only=True, allow_null=True)
     milestone = MilestoneSerializer(required=False, read_only=True)
 
-    def _restore_object(self, attrs, instance=None):
-        issue = instance or Issue()
+    comments_url = serializers.SerializerMethodField()
+
+    def _restore_issue(self, attrs, issue=None):
         issue.summary = attrs.get("summary") or issue.summary
         issue.description = attrs.get("description") or issue.description
         issue.steps_to_reproduce = attrs.get("steps_to_reproduce") or issue.steps_to_reproduce
@@ -136,10 +138,15 @@ class IssueSerializer(serializers.Serializer):
         issue.affects_versions_detached = issue.project.version_set.filter(pk__in=attrs.get("affects_versions"))
         issue.fix_versions_detached = issue.project.version_set.filter(pk__in=attrs.get("fix_versions"))
 
+        issue.save()
+
         return issue
 
+    def get_comments_url(self, obj):
+        return f"http://localhost:9123/rest/issues/{obj.issue_key}/comments/"
+
     def create(self, validated_data):
-        return self._restore_object(validated_data)
+        return self._restore_issue(validated_data, Issue())
 
     def update(self, instance, validated_data):
-        return self._restore_object(validated_data, instance)
+        return self._restore_issue(validated_data, instance)

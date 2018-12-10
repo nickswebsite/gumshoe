@@ -162,8 +162,8 @@ class ClosedStatus extends Status
   constructor: ( oldStatus ) -> super( oldStatus.resolution, "CLOSED", "Closed" )
 
 class Comment
-  constructor: ( id, author, text, created, updated) ->
-    @id = id || -1
+  constructor: ( url, author, text, created, updated) ->
+    @url = url || null
     @created = created || new Date()
     @updated = updated || new Date()
     @author = author || null
@@ -178,7 +178,7 @@ class Comment
       author = User.fromDTO( dto.author )
       userManager.putUser( User.fromDTO( dto.author ) )
 
-    new Comment( dto.id, author, dto.text, created, updated )
+    new Comment( dto.url, author, dto.text, created, updated )
 
 class Issue
   constructor: () ->
@@ -208,6 +208,8 @@ class Issue
     @reported = new Date()
     @lastUpdated = new Date()
 
+    @commentsUrl = null
+
   @fromDTO: ( dto ) ->
     obj = new Issue()
     obj.issueKey = dto.issueKey
@@ -234,6 +236,8 @@ class Issue
 
     obj.reported = new Date( dto.reported )
     obj.lastUpdated = new Date( dto.lastUpdated )
+
+    obj.commentsUrl = dto.commentsUrl
 
     obj
 
