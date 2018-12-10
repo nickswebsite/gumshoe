@@ -13,15 +13,15 @@
     nodejs_build_dir: /tmp/nodebuild
 
   tasks:
-#  - pip: requirements={{ playbook_dir }}/project/requirements-cpython.txt
-#         virtualenv={{ envroot }}
-#         virtualenv_python=python3.7
+  - pip: requirements={{ playbook_dir }}/project/requirements-cpython.txt
+         virtualenv={{ envroot }}
+         virtualenv_python=python3.7
 
   - file: path={{ playbook_dir }}/{{ item }} state=absent
     with_items:
     - node_modules
     - dist
-#  - file: path={{ envroot }} state=directory
+  - file: path={{ envroot }} state=directory
   - file: path={{ nodejs_build_dir }} state=directory
   - get_url: url={{ nodejs_url }} dest={{ nodejs_build_dir }}
   - unarchive: src={{ nodejs_build_dir }}/{{ nodejs_archive }} dest={{ envroot }}

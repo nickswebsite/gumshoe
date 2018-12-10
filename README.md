@@ -16,7 +16,7 @@ To install from the source
 
 Please note that the setup script requires setuptools.
 
-Currently only django 1.6 is supported, but it might work in Django 1.5.
+Currently only django 2.1.4 is supported.  `gumshoe` also requires Django REST Framework 3.9.0
 
 Standalone mode
 ===============
