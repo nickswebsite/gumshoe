@@ -49,7 +49,7 @@ setup(
     install_requires=[
         'pytz',
         'Django==2.1.4',
-        'djangorestframework==3.9.0',
+        'djangorestframework==3.9.1',
     ],
     classifiers=CLASSIFIERS
 )
