@@ -4,7 +4,7 @@
   "private": false,
   "dependencies": {},
   "devDependencies": {
-    "angular": "1.2.32",
+    "angular": "1.7.9",
     "angular-ui-bootstrap": "0.12.1",
     "coffeescript": "1.12.7",
     "node-sass": "4.9.2",
