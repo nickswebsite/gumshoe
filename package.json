@@ -8,7 +8,7 @@
     "angular-ui-bootstrap": "0.12.1",
     "coffeescript": "1.12.7",
     "node-sass": "4.9.2",
-    "urijs": "1.16.1"
+    "urijs": "1.19.4"
   },
   "scripts": {
     "cake": "cake build",
